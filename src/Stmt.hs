@@ -6,6 +6,7 @@ import Types
 import Evaluator (MyEnv)
 import Utils
 import Main (getValueFromMemory)
+import Control.Monad.Trans.RWS (ask)
 
 
 ----- STMTS -----
@@ -74,3 +75,36 @@ execStmt (Decr _ ident) = do
     (store, last) <- get
     let val = getValueFromMemory env store ident
     return execStmt (Assign _ ident (EInt _ (val - 1)))
+
+execStmt (StmtExp _ expr) = do
+    evalExpr expr
+    ask
+
+execStmt (Ret _ expr) = do
+    ask
+
+execStmt (VRet _) = do
+    ask
+
+execStmt (If _ expr block) = do
+    val <- evalExpr expr
+    case val of
+        VBool True -> execBlock block
+        VBool False -> ask
+        _ -> throwError $ "If error - " ++ val ++ " is not a boolean value"
+
+execStmt (IfElse _ expr block1 block2) = do
+    val <- evalExpr expr
+    case val of
+        VBool True -> execBlock block1
+        VBool False -> execBlock block2
+        _ -> throwError $ "If error - " ++ val ++ " is not a boolean value"
+
+execStmt (While _ expr block) = do
+    val <- evalExpr expr
+    case val of
+        VBool True -> do
+            execBlock block
+            execStmt (While _ expr block)
+        VBool False -> ask
+        _ -> throwError $ "While error - " ++ val ++ " is not a boolean value"  
