@@ -38,7 +38,7 @@ execBlock :: Block -> InterpreterMonad MyEnv -- Todo: Maybe change to MyEnv
 execBlock (Block _ stmts) = do
     env <- ask
     (store, last) <- get
-    env' <- local (const newEnv) $ execStmts stmts
+    env' <- local (const env) $ execStmts stmts
     return env'
 
 
@@ -62,7 +62,7 @@ execStmt (Assign _ ident expr) = do
         Nothing -> throwError $ "Variable " ++ show ident ++ " not found"
     let newStore = Data.Map.insert loc val store 
     put (newStore, last)
-    ask
+    return env
 
 execStmt (Incr _ ident) = do
     env <- ask
@@ -82,11 +82,23 @@ execStmt (StmtExp _ expr) = do
 
 -- TODO
 execStmt (Ret _ expr) = do
-    ask
+    value <- evalExpr expr
+    env <- ask
+    (store, last) <- get
+    let newEnv = Data.Map.insert "return" last env
+    let newStore = (Data.Map.insert value last store, last + 1)
+    put newStore
+    return newEnv
 
 -- TODO
 execStmt (VRet _) = do
-    ask
+    env <- ask
+    (store, last) <- get
+    let newEnv = Data.Map.insert "return" last env
+    let newStore = (Data.Map.insert VVoid last store, last + 1)
+    put newStore
+    return newEnv
+
 
 execStmt (If _ expr block) = do
     val <- evalExpr expr
