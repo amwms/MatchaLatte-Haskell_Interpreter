@@ -21,7 +21,7 @@ execProgComps [] = do
 execProgComps (comp : comps) = do
     env <- ask
     (store, last) <- get
-    env' <- local (const newEnv) $ execProgComp comp
+    env' <- local (const env) $ execProgComp comp
     local (const env') $ execProgComps comps
 
 
@@ -29,7 +29,7 @@ execProgram :: Program -> InterpreterMonad Int
 execProgram (Program _ components) = do
     env <- ask
     (store, last) <- get
-    env' <- local (const newEnv) $ execProgComps components
+    env' <- local (const env) $ execProgComps components
     return 0
 
 -- TODO
@@ -41,3 +41,21 @@ execProgComp (FunDecl _ typ ident args block) = do
 execProgComp (VarDecl _ typ items) = do
     env <- ask
     return env
+
+evalItem :: Item -> InterpreterMonad MyEnv
+evalItem (NoInit _ ident) defaultValue = do
+    env <- ask
+    (store, loc) <- get
+    let newEnv = Data.Map.insert ident loc env
+    let newStore = (Data.Map.insert defaultValue loc store, loc + 1)
+    put newStore
+    return newEnv
+
+evalItem (Init a Ident (Expr a)) _ = do
+    value <- evalExpr expr
+    env <- ask
+    (store, loc) <- get
+    let newEnv = Data.Map.insert ident loc env
+    let newStore = (Data.Map.insert value loc store, loc + 1)
+    put newStore
+    return newEnv
