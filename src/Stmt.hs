@@ -25,11 +25,11 @@ import Control.Monad.Trans.RWS (ask)
 --     | IfElse a (Expr a) (Block a) (Block a)
 --     | While a (Expr a) (Block a)
 
-evalStmts :: [Stmt] -> InterpreterMonad MyEnv
-evalStmts [] = do
+execStmts :: [Stmt] -> InterpreterMonad MyEnv
+execStmts [] = do
     ask
 
-evalStmts (stmt:stmts) = do
+execStmts (stmt : stmts) = do
     env' <- evalStmt stmt
     local (const env') (evalStmts stmts)
 
@@ -80,9 +80,11 @@ execStmt (StmtExp _ expr) = do
     evalExpr expr
     ask
 
+-- TODO
 execStmt (Ret _ expr) = do
     ask
 
+-- TODO
 execStmt (VRet _) = do
     ask
 
