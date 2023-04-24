@@ -5,7 +5,6 @@ import Data.Map
 import Types
 import Evaluator (MyEnv)
 import Utils
-import Main (getValueFromMemory)
 import Control.Monad.Trans.RWS (ask)
 
 
@@ -36,9 +35,16 @@ execStmts (stmt : stmts) = do
 execBlock :: Block -> InterpreterMonad MyEnv -- Todo: Maybe change to MyEnv
 execBlock (Block _ stmts) = do
     env <- ask
-    (store, last) <- get
     env' <- local (const env) $ execStmts stmts
-    return env'
+    if hasReturn env' then do
+        val <- getValueFromMemory env' store "return"
+        (store, loc) <- get
+        let newEnv = Data.Map.insert "return" loc env
+        let newStore = (Data.Map.insert val loc store, loc + 1)
+        put newStore
+        return newEnv
+    else
+        return env
 
 execStmt :: Stmt -> InterpreterMonad MyEnv
 execStmt (Empty _) = do
