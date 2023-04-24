@@ -33,14 +33,12 @@ execStmts (stmt : stmts) = do
     env' <- evalStmt stmt
     local (const env') (evalStmts stmts)
 
-
 execBlock :: Block -> InterpreterMonad MyEnv -- Todo: Maybe change to MyEnv
 execBlock (Block _ stmts) = do
     env <- ask
     (store, last) <- get
     env' <- local (const env) $ execStmts stmts
     return env'
-
 
 execStmt :: Stmt -> InterpreterMonad MyEnv
 execStmt (Empty _) = do
@@ -80,24 +78,28 @@ execStmt (StmtExp _ expr) = do
     evalExpr expr
     ask
 
--- TODO
 execStmt (Ret _ expr) = do
-    value <- evalExpr expr
     env <- ask
-    (store, last) <- get
-    let newEnv = Data.Map.insert "return" last env
-    let newStore = (Data.Map.insert value last store, last + 1)
-    put newStore
-    return newEnv
+    if not(hasReturn env) then do
+        value <- evalExpr expr
+        (store, last) <- get
+        let newEnv = Data.Map.insert "return" last env
+        let newStore = (Data.Map.insert value last store, last + 1)
+        put newStore
+        return newEnv
+    else
+        ask
 
--- TODO
 execStmt (VRet _) = do
     env <- ask
-    (store, last) <- get
-    let newEnv = Data.Map.insert "return" last env
-    let newStore = (Data.Map.insert VVoid last store, last + 1)
-    put newStore
-    return newEnv
+    if not(hasReturn env) then do
+        (store, last) <- get
+        let newEnv = Data.Map.insert "return" last env
+        let newStore = (Data.Map.insert VVoid last store, last + 1)
+        put newStore
+        return newEnv
+    else
+        return env
 
 
 execStmt (If _ expr block) = do

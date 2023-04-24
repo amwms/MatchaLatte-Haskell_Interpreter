@@ -9,3 +9,8 @@ getValueFromMemory env store ident = do
         Just loc -> return loc
         Nothing -> throwError $ "Variable " ++ show ident ++ " not found"
     return $ findWithDefault 0 loc store
+
+hasReturn :: MyEnv -> Bool
+hasReturn env = case Data.Map.lookup "return" env of
+    Just _ -> True
+    Nothing -> False
