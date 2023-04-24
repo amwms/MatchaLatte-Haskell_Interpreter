@@ -52,7 +52,6 @@ execStmt (Empty _) = do
 
 execStmt (StmtBlock _ block) = do
     execBlock block
-    ask
 
 execStmt (StmtComp _ component) = do
     execProgComp component
