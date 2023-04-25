@@ -26,10 +26,11 @@ evalExpr :: Expr -> InterpreterMonad Value
 evalExpr (EVar _ ident) = do
     env <- ask
     (store, last) <- get
-    let loc = Data.Map.lookup ident env
-    case loc of
-        Nothing -> throwError "Variable " ++ ident ++ " does not exist"
-        Just n ->  return (findWithDefault 0 n store)
+    -- let loc = Data.Map.lookup ident env
+    -- case loc of
+    --     Nothing -> throwError "Variable " ++ ident ++ " does not exist"
+    --     Just n ->  return (findWithDefault 0 n store)
+    return $ getValueFromMemory env store ident
 
 ----- VALUE EXPRESSIONS ----
 evalExpr (EInt _ int) = return $ VInt int
@@ -98,12 +99,42 @@ evalExpr (EOr _ expr1 expr2) = do
         (VBool b1, VBool b2) -> return $ VBool $ b1 || b2
         _ -> throwError $ "Or error - not a boolean value"
 
-------- APPLICATION -------
---- TODO 
 evalExpr (EApplic _ ident exprs) = do
-    -- env <- ask
-    -- (store, last) <- get
-    -- let loc = Data.Map.lookup ident env
-    -- (VFun args retType block env) <- evalExpr (EVar _ ident)
+    env <- ask
+    (store, last) <- get
+    let loc = Data.Map.lookup ident env
+    (VFun args retType block env) <- evalExpr (EVar _ ident)
 
-    -- return fun
+
+    return VVoid
+
+------- APPLICATION -------
+evalArg :: Arg -> Expr -> InterpreterMonad MyEnv
+evalArg (ValArg _ _ ident) expr = do
+    val <- evalExpr expr
+    env <- ask
+    (store, loc) <- get
+    let newEnv = Data.Map.insert ident loc env
+    let newStore = (Data.Map.insert loc val store, loc + 1)
+    put newStore
+    return newEnv
+
+evalArg (RefArg _ _ ident) expr = do
+    ident <- case expr of
+        EVar _ ident -> return ident
+        _ -> throwError "Reference error - not a variable"
+    env <- ask
+    (store, loc) <- get
+    let identLoc = getVariableLocation env ident
+    let newEnv = Data.Map.insert ident identLoc env
+    return newEnv
+
+evalArgs :: [Arg] -> [Expr] -> InterpreterMonad MyEnv
+evalArgs [] [] = do
+    ask
+
+evalArgs (arg:args) (expr:exprs) = do
+    env <- evalArg arg expr
+    local (const env) (evalArgs args exprs)
+
+--- TODO 
