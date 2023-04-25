@@ -60,9 +60,7 @@ execStmt (Assign _ ident expr) = do
     val <- evalExpr expr
     env <- ask
     (store, last) <- get
-    loc <- case Data.Map.lookup ident env of
-        Just loc -> return loc
-        Nothing -> throwError $ "Variable " ++ show ident ++ " not found"
+    let loc = getVariableLocation env ident
     let newStore = Data.Map.insert loc val store 
     put (newStore, last)
     return env
@@ -105,7 +103,6 @@ execStmt (VRet _) = do
         return newEnv
     else
         return env
-
 
 execStmt (If _ expr block) = do
     val <- evalExpr expr
