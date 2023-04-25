@@ -1,8 +1,36 @@
 module Expr where
 
 import Grammar.Abs
+import Data.Map 
+import Control.Monad.Reader      
+import Control.Monad.Except
+import Control.Monad.State
+
 import Types
-import Data.Map
+import Utils
+
+----- OPERATIONS -----
+-- data AddOp a = Plus a | Minus a
+-- data MulOp a = Times a | Div a | Mod a
+-- data RelOp a = Less a | LEQ a | Greater a | GEQ a | EQU a | NEQ a
+
+evalAddOp :: Integral a1 => AddOp -> a1 -> a1 -> a1
+evalAddOp (Plus _) = (+)
+evalAddOp (Minus _) = (-)
+
+evalMulOp :: Integral a1 => MulOp -> a1 -> a1 -> a1
+evalMulOp (Times _) = (*)
+evalMulOp (Div _) = div
+evalMulOp (Mod _) = mod
+
+
+evalRelOp :: Ord a1 => RelOp -> a1 -> a1 -> Bool
+evalRelOp (Less _) = (<)
+evalRelOp (LEQ _) = (<=)
+evalRelOp (Greater _) = (>)
+evalRelOp (GEQ _) = (>=)
+evalRelOp (EQU _) = (==)
+evalRelOp (NEQ _) = (/=)
 
 ------ EXPRESSIONS -----
 
@@ -23,14 +51,14 @@ import Data.Map
 --     | EOr a (Expr a) (Expr a)
 
 evalExpr :: Expr -> InterpreterMonad Value
-evalExpr (EVar _ ident) = do
-    env <- ask
-    (store, last) <- get
+evalExpr (EVar _ ident) = 
+    -- env <- ask
+    -- (store, last) <- get
     -- let loc = Data.Map.lookup ident env
     -- case loc of
     --     Nothing -> throwError "Variable " ++ ident ++ " does not exist"
     --     Just n ->  return (findWithDefault 0 n store)
-    return $ getValueFromMemory env store ident
+    getValueFromMemory ident
 
 ----- VALUE EXPRESSIONS ----
 evalExpr (EInt _ int) = return $ VInt int
@@ -99,14 +127,13 @@ evalExpr (EOr _ expr1 expr2) = do
         (VBool b1, VBool b2) -> return $ VBool $ b1 || b2
         _ -> throwError $ "Or error - not a boolean value"
 
-evalExpr (EApplic _ ident exprs) = do
-    env <- ask
-    (store, last) <- get
-    let loc = Data.Map.lookup ident env
-    (VFun args retType block env) <- evalExpr (EVar _ ident)
+-- evalExpr (EApplic _ ident exprs) = do
+--     env <- ask
+--     (store, last) <- get
+--     let loc = Data.Map.lookup ident env
+--     (VFun args retType block env) <- evalExpr (EVar _ ident)
 
-
-    return VVoid
+--     return VVoid
 
 ------- APPLICATION -------
 evalArg :: Arg -> Expr -> InterpreterMonad MyEnv
@@ -125,7 +152,7 @@ evalArg (RefArg _ _ ident) expr = do
         _ -> throwError "Reference error - not a variable"
     env <- ask
     (store, loc) <- get
-    let identLoc = getVariableLocation env ident
+    identLoc <- getVariableLocation ident
     let newEnv = Data.Map.insert ident identLoc env
     return newEnv
 
@@ -136,5 +163,3 @@ evalArgs [] [] = do
 evalArgs (arg:args) (expr:exprs) = do
     env <- evalArg arg expr
     local (const env) (evalArgs args exprs)
-
---- TODO 
