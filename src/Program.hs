@@ -2,6 +2,11 @@ module Program where
 
 import Grammar.Abs
 import Data.Map
+import Control.Monad.Reader      
+import Control.Monad.Except
+import Control.Monad.State
+
+import Expr
 import Types
 
 -- data Program a = Program a [ProgComp a]
@@ -38,7 +43,9 @@ execProgram (Program _ components) = do
     --         VInt i -> return $ fromInteger i
     -- else
     --     return 0 --TODO ->return main() return 
-    return env'
+    -- retVal <- evalExpr (EApp _ (Ident "main") [])
+    -- return retVal
+    return 0
 
 -- TODO
 execProgComp :: ProgComp -> InterpreterMonad MyEnv
@@ -46,7 +53,7 @@ execProgComp (FunDecl _ retType ident args block) = do
     env <- ask
     (store, loc) <- get
     let newEnv = Data.Map.insert ident loc env
-    let newStore = (Data.Map.insert (VFun args retType block newEnv) loc store, loc + 1)
+    let newStore = (Data.Map.insert loc (VFun args retType block newEnv) store, loc + 1)
     put newStore
     return newEnv
 
@@ -54,36 +61,35 @@ execProgComp (VarDecl _ varType items) = do
     env <- ask
     case varType of
         Int _ -> local (const env) $ evalItems items $ VInt 0
-        Str _ -> local (const env) $ evalItems items $ VStr ""
+        Str _ -> local (const env) $ evalItems items $ VString ""
         Bool _ -> local (const env) $ evalItems items $ VBool False
         Void _ -> local (const env) $ evalItems items VVoid
-        Fun _ [Type' _] (Type' _) -> local (const env) $ evalItems items $ VFun [] (Type' _) (Block _ [])
-    
+        (Fun x argTypes retType) -> local (const env) $ evalItems items $ VFun [] retType (Block x [Empty x]) env
 
-evalItems :: [Item] -> InterpreterMonad MyEnv
-evalItems [] = do
+evalItems :: [Item] -> Value -> InterpreterMonad MyEnv
+evalItems [] _ = do
     ask
 
-evalItems (item : items) = do
+evalItems (item : items) defaultValue = do
     env <- ask
     (store, loc) <- get
-    env' <- local (const env) $ evalItem item
-    local (const env') $ evalItems items
+    env' <- local (const env) $ evalItem item defaultValue
+    local (const env') $ evalItems items defaultValue
 
-evalItem :: Item -> InterpreterMonad MyEnv
+evalItem :: Item -> Value -> InterpreterMonad MyEnv
 evalItem (NoInit _ ident) defaultValue = do
     env <- ask
     (store, loc) <- get
     let newEnv = Data.Map.insert ident loc env
-    let newStore = (Data.Map.insert defaultValue loc store, loc + 1)
+    let newStore = (Data.Map.insert loc defaultValue store, loc + 1)
     put newStore
     return newEnv
 
-evalItem (Init a Ident (Expr a)) _ = do
+evalItem (Init _ ident expr) _ = do
     value <- evalExpr expr
     env <- ask
     (store, loc) <- get
     let newEnv = Data.Map.insert ident loc env
-    let newStore = (Data.Map.insert value loc store, loc + 1)
+    let newStore = (Data.Map.insert loc value store, loc + 1)
     put newStore
     return newEnv
