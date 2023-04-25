@@ -7,7 +7,13 @@ import Control.Monad.Except
 import Control.Monad.State
 
 type MyEnv = Map Ident Int
-data Value = VInt Integer | VBool Bool | VString String | VVoid | VFun [Arg] Type Block MyEnv
+data Value 
+    = VInt Integer 
+    | VBool Bool 
+    | VString String 
+    | VVoid 
+    | VFun [Arg] Type Block MyEnv
+
 type MyStore = (Map Int Value, Int)
 type ProgramException = String
 
