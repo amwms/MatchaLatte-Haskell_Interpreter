@@ -13,8 +13,9 @@ data Value
     | VString String 
     | VVoid 
     | VFun [Arg] Type Block MyEnv
+    deriving (Show, Eq)
 
 type MyStore = (Map Int Value, Int)
 type ProgramException = String
 
-type InterpreterMonad =  (ReaderT MyEnv (StateT MyStore (ExceptT String IO)))
+type InterpreterMonad =  (ReaderT MyEnv (StateT MyStore (ExceptT ProgramException IO))) 
