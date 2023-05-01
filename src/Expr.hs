@@ -8,6 +8,7 @@ import Control.Monad.State
 
 import Types
 import Utils
+import Stmt
 
 ----- OPERATIONS -----
 -- data AddOp a = Plus a | Minus a
@@ -127,13 +128,15 @@ evalExpr (EOr _ expr1 expr2) = do
         (VBool b1, VBool b2) -> return $ VBool $ b1 || b2
         _ -> throwError $ "Or error - not a boolean value"
 
--- evalExpr (EApplic _ ident exprs) = do
---     env <- ask
---     (store, last) <- get
---     let loc = Data.Map.lookup ident env
---     (VFun args retType block env) <- evalExpr (EVar _ ident)
+evalExpr (EApplic pos ident exprs) = do
+    (VFun args retType block env) <- evalExpr (EVar pos ident)
+    env' <- local (const env) evalArgs args exprs
+    env'' <- local (const env') execBlock block
 
---     return VVoid
+    if retType == Void then 
+        return VVoid
+    else 
+        getReturnValue env''
 
 ------- APPLICATION -------
 evalArg :: Arg -> Expr -> InterpreterMonad MyEnv
