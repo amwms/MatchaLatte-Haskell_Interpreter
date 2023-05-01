@@ -33,7 +33,11 @@ execStmts [] = do
 
 execStmts (stmt : stmts) = do
     env' <- execStmt stmt
-    local (const env') (execStmts stmts)
+    
+    if hasReturn env' then
+        return env'
+    else
+        local (const env') (execStmts stmts)
 
 execBlock :: Block -> InterpreterMonad MyEnv -- Todo: Maybe change to MyEnv
 execBlock (Block _ stmts) = do
