@@ -10,7 +10,6 @@ import Expr
 import Program
 import Types
 import Utils
-import Utils (hasReturn)
 
 ----- STMTS -----
 -- data Block a = Block a [Stmt' a]
@@ -44,7 +43,8 @@ execBlock :: Block -> InterpreterMonad MyEnv -- Todo: Maybe change to MyEnv
 execBlock (Block _ stmts) = do
     env <- ask
     env' <- local (const env) $ execStmts stmts
-    liftIO(putStrLn $ "AFTER block: " ++ show env')
+    -- DEBUG
+    -- liftIO(putStrLn $ "AFTER block: " ++ show env')
     if hasReturn env' then do
         val <- local (const env') $ getValueFromMemory (Ident "return")
         -- liftIO(putStrLn $ "RETURN VALUE: " ++ show val)
@@ -141,6 +141,18 @@ execStmt while@(While _ expr block) = do
         VBool False -> ask
         _ -> throwError $ "While error - not a boolean value"
 
+execStmt (Print _ expr) = do
+    val <- evalExpr expr
+    case val of
+        VInt intVal -> liftIO $ putStrLn $ show intVal
+        VBool boolVal -> liftIO $ putStrLn $ show boolVal
+        VString strVal -> liftIO $ putStrLn $ show strVal
+        VVoid -> liftIO $ putStrLn "()"
+        _ -> throwError "Print error - not a printable value"
+
+    ask
+
+
 ------ EXPRESSIONS -----
 
 -- data Expr a
@@ -193,6 +205,7 @@ evalExpr (ENeg _ expr) = do
         _ -> throwError $ "Negation error - not an integer value"
 
 ------- MUL -------
+-- TODO - division by 0
 evalExpr (EMul _ expr1 mulOp expr2) = do
     val1 <- evalExpr expr1
     val2 <- evalExpr expr2
@@ -246,8 +259,8 @@ evalExpr (EApplic pos ident exprs) = do
     -- else 
     --     getReturnValue env''
     --DEBUG
-    liftIO $ putStrLn $ "DEBUG in APLICATION:"
-    liftIO $ putStrLn $ "env: " ++ show env''
+    -- liftIO $ putStrLn $ "DEBUG in APLICATION:"
+    -- liftIO $ putStrLn $ "env: " ++ show env''
 
     if hasReturn env'' then 
         getReturnValue env''
@@ -306,8 +319,8 @@ execProgram (Program pos components) = do
     (store, last) <- get
 
     -- DEBUG
-    liftIO (putStrLn $ show env')
-    -- liftIO (putStrLn $ show store)
+    -- liftIO (putStrLn $ "ENV :  " ++ show env')
+    -- liftIO (putStrLn $ "STORE : " ++ show store)
 
 
     -- TODO -  run all porgram components and then run Expr Application of main
