@@ -250,8 +250,14 @@ evalExpr (EOr _ expr1 expr2) = do
         _ -> throwError $ "Or error - not a boolean value"
 
 evalExpr (EApplic pos ident exprs) = do
-    (VFun args retType block env) <- evalExpr (EVar pos ident)
-    env' <- local (const env) $ evalArgs args exprs
+    (VFun args retType block funEnv) <- evalExpr (EVar pos ident)
+    outsideEnv <- ask
+    -- DEBUG
+    -- liftIO $ putStrLn $ "DEBUG in EApplic:"
+    -- liftIO $ putStrLn $ show args
+    -- liftIO $ putStrLn $ show exprs
+    -- liftIO $ putStrLn $ show env
+    env' <- local (const funEnv) $ evalArgs args exprs outsideEnv
     env'' <- local (const env') $ execBlock block
 
     -- if retType == (Void ) then 
@@ -269,9 +275,9 @@ evalExpr (EApplic pos ident exprs) = do
         
 
 ------- APPLICATION -------
-evalArg :: Arg -> Expr -> InterpreterMonad MyEnv
-evalArg (ValArg _ _ ident) expr = do
-    val <- evalExpr expr
+evalArg :: Arg -> Expr -> MyEnv -> InterpreterMonad MyEnv
+evalArg (ValArg _ _ ident) expr outsideEnv = do
+    val <- local (const outsideEnv) $ evalExpr expr
     env <- ask
     (store, loc) <- get
     let newEnv = Data.Map.insert ident loc env
@@ -279,23 +285,23 @@ evalArg (ValArg _ _ ident) expr = do
     put newStore
     return newEnv
 
-evalArg (RefArg _ _ ident) expr = do
-    ident <- case expr of
+evalArg (RefArg _ _ ident) expr outsideEnv = do
+    outsideIdent <- case expr of
         EVar _ ident -> return ident
         _ -> throwError "Reference error - not a variable"
     env <- ask
     (store, loc) <- get
-    identLoc <- getVariableLocation ident
+    identLoc <- local (const outsideEnv) $ getVariableLocation outsideIdent
     let newEnv = Data.Map.insert ident identLoc env
     return newEnv
 
-evalArgs :: [Arg] -> [Expr] -> InterpreterMonad MyEnv
-evalArgs [] [] = do
+evalArgs :: [Arg] -> [Expr] -> MyEnv -> InterpreterMonad MyEnv
+evalArgs [] [] outsideEnv = do
     ask
 
-evalArgs (arg:args) (expr:exprs) = do
-    env <- evalArg arg expr
-    local (const env) (evalArgs args exprs)
+evalArgs (arg : args) (expr : exprs) outsideEnv = do
+    env <- evalArg arg expr outsideEnv
+    local (const env) $ evalArgs args exprs outsideEnv
 
 
 
