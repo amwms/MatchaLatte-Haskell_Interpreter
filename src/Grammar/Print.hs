@@ -191,6 +191,7 @@ instance Print (Grammar.Abs.Stmt' a) where
     Grammar.Abs.Incr _ id_ -> prPrec i 0 (concatD [prt 0 id_, doc (showString "++"), doc (showString ";")])
     Grammar.Abs.Decr _ id_ -> prPrec i 0 (concatD [prt 0 id_, doc (showString "--"), doc (showString ";")])
     Grammar.Abs.StmtExp _ expr -> prPrec i 0 (concatD [prt 0 expr, doc (showString ";")])
+    Grammar.Abs.Print _ expr -> prPrec i 0 (concatD [doc (showString "print"), doc (showString "("), prt 0 expr, doc (showString ")"), doc (showString ";")])
     Grammar.Abs.Ret _ expr -> prPrec i 0 (concatD [doc (showString "return"), prt 0 expr, doc (showString ";")])
     Grammar.Abs.VRet _ -> prPrec i 0 (concatD [doc (showString "return"), doc (showString ";")])
     Grammar.Abs.If _ expr block -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 block])

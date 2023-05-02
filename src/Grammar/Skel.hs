@@ -51,6 +51,7 @@ transStmt x = case x of
   Grammar.Abs.Incr _ ident -> failure x
   Grammar.Abs.Decr _ ident -> failure x
   Grammar.Abs.StmtExp _ expr -> failure x
+  Grammar.Abs.Print _ expr -> failure x
   Grammar.Abs.Ret _ expr -> failure x
   Grammar.Abs.VRet _ -> failure x
   Grammar.Abs.If _ expr block -> failure x

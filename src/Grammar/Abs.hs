@@ -49,6 +49,7 @@ data Stmt' a
     | Incr a Ident
     | Decr a Ident
     | StmtExp a (Expr' a)
+    | Print a (Expr' a)
     | Ret a (Expr' a)
     | VRet a
     | If a (Expr' a) (Block' a)
@@ -141,6 +142,7 @@ instance HasPosition Stmt where
     Incr p _ -> p
     Decr p _ -> p
     StmtExp p _ -> p
+    Print p _ -> p
     Ret p _ -> p
     VRet p -> p
     If p _ _ -> p

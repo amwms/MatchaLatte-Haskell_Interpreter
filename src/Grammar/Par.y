@@ -56,14 +56,15 @@ import Grammar.Lex
   'if'     { PT _ (TS _ 31) }
   'int'    { PT _ (TS _ 32) }
   'pass'   { PT _ (TS _ 33) }
-  'return' { PT _ (TS _ 34) }
-  'string' { PT _ (TS _ 35) }
-  'true'   { PT _ (TS _ 36) }
-  'void'   { PT _ (TS _ 37) }
-  'while'  { PT _ (TS _ 38) }
-  '{'      { PT _ (TS _ 39) }
-  '||'     { PT _ (TS _ 40) }
-  '}'      { PT _ (TS _ 41) }
+  'print'  { PT _ (TS _ 34) }
+  'return' { PT _ (TS _ 35) }
+  'string' { PT _ (TS _ 36) }
+  'true'   { PT _ (TS _ 37) }
+  'void'   { PT _ (TS _ 38) }
+  'while'  { PT _ (TS _ 39) }
+  '{'      { PT _ (TS _ 40) }
+  '||'     { PT _ (TS _ 41) }
+  '}'      { PT _ (TS _ 42) }
   L_Ident  { PT _ (TV _)    }
   L_integ  { PT _ (TI _)    }
   L_quoted { PT _ (TL _)    }
@@ -132,6 +133,7 @@ Stmt
   | Ident '++' ';' { (fst $1, Grammar.Abs.Incr (fst $1) (snd $1)) }
   | Ident '--' ';' { (fst $1, Grammar.Abs.Decr (fst $1) (snd $1)) }
   | Expr ';' { (fst $1, Grammar.Abs.StmtExp (fst $1) (snd $1)) }
+  | 'print' '(' Expr ')' ';' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Print (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $3)) }
   | 'return' Expr ';' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Ret (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $2)) }
   | 'return' ';' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.VRet (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1))) }
   | 'if' '(' Expr ')' Block { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.If (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $3) (snd $5)) }

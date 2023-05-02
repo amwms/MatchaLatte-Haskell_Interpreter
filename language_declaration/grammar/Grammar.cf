@@ -47,6 +47,8 @@ Decr.      Stmt ::= Ident "--"  ";" ;
 
 StmtExp.   Stmt ::= Expr  ";" ;
 
+Print.     Stmt ::= "print" "(" Expr ")" ";" ;
+
 
 Ret.       Stmt ::= "return" Expr ";" ;
 
