@@ -44,11 +44,13 @@ execBlock :: Block -> InterpreterMonad MyEnv -- Todo: Maybe change to MyEnv
 execBlock (Block _ stmts) = do
     env <- ask
     env' <- local (const env) $ execStmts stmts
+    liftIO(putStrLn $ "AFTER block: " ++ show env')
     if hasReturn env' then do
-        val <- getValueFromMemory (Ident "return")
-        (store, loc) <- get
-        let newEnv = Data.Map.insert (Ident "return") loc env
-        let newStore = (Data.Map.insert loc val store, loc + 1)
+        val <- local (const env') $ getValueFromMemory (Ident "return")
+        -- liftIO(putStrLn $ "RETURN VALUE: " ++ show val)
+        (store, last) <- get
+        let newEnv = Data.Map.insert (Ident "return") last env
+        let newStore = (Data.Map.insert last val store, last + 1)
         put newStore
         return newEnv
     else
@@ -243,6 +245,10 @@ evalExpr (EApplic pos ident exprs) = do
     --     return VVoid
     -- else 
     --     getReturnValue env''
+    --DEBUG
+    liftIO $ putStrLn $ "DEBUG in APLICATION:"
+    liftIO $ putStrLn $ "env: " ++ show env''
+
     if hasReturn env'' then 
         getReturnValue env''
     else 
@@ -293,21 +299,26 @@ execProgComps (comp : comps) = do
     local (const env') $ execProgComps comps
 
 
-execProgram :: Program -> InterpreterMonad Int
+execProgram :: Program -> InterpreterMonad Integer
 execProgram (Program pos components) = do
     env <- ask
     env' <- local (const env) $ execProgComps components
     (store, last) <- get
 
+    -- DEBUG
     liftIO (putStrLn $ show env')
-    liftIO (putStrLn $ show store)
+    -- liftIO (putStrLn $ show store)
 
 
     -- TODO -  run all porgram components and then run Expr Application of main
     -- and return that value
-    loc <- getVariableLocation (Ident "main")
-    -- evalExpr (EApplic pos (Ident "main") [])
-    return 0
+    loc <- local (const env') $ getVariableLocation (Ident "main")
+    
+    intVal <- local (const env') $ evalExpr (EApplic pos (Ident "main") [])
+    case intVal of
+        VInt i -> return i
+        _ -> throwError "Main function must return an integer value"
+    -- return 0
 
 -- TODO
 execProgComp :: ProgComp -> InterpreterMonad MyEnv
