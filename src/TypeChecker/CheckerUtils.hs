@@ -1,11 +1,11 @@
-module CheckerUtils where
+module TypeChecker.CheckerUtils where
 
 import Data.Map
 import Control.Monad.Reader      
 import Control.Monad.Except
 
 import Grammar.Abs
-import CheckerTypes
+import TypeChecker.CheckerTypes
 
 getVariableType :: Ident -> TypeCheckerMonad Type
 getVariableType pos ident = do

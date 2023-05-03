@@ -1,4 +1,4 @@
-module Types where
+module TypeChecker.CheckerTypes where
 
 import Grammar.Abs
 import Data.Map (Map)
@@ -8,4 +8,4 @@ import Control.Monad.Except
 type TypeEnv = Map Ident Type
 type ProgramException = String
 
-type TypeCheckerMonad =  (ReaderT MyEnv (ExceptT ProgramException IO))
+type TypeCheckerMonad =  (ReaderT TypeEnv (ExceptT ProgramException IO))

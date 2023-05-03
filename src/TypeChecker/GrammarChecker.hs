@@ -1,4 +1,4 @@
-module GrammarChecker where
+module TypeChecker.GrammarChecker where
 
 import Grammar.Abs
 import Data.Map
@@ -6,8 +6,8 @@ import Control.Monad.Reader
 import Control.Monad.Except
 
 import Expr
-import CheckerTypes
-import CheckerUtils
+import TypeChecker.CheckerTypes
+import TypeCheckerCheckerUtils
 
 ----- STMTS -----
 -- data Block a = Block a [Stmt' a]

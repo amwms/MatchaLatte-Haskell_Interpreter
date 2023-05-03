@@ -1,4 +1,4 @@
-module TypeChecker where
+module TypeChecker.TypeChecker where
 
 import Grammar.Abs
 import Data.Map
@@ -6,8 +6,8 @@ import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Monad.State
 
-import CheckerTypes
-import EvalExec
+import TypeChecker.CheckerTypes
+import TypeChecker.GrammarChecker
 
 run :: Program -> IO ()
 run p = 
