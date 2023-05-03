@@ -312,42 +312,43 @@ evalItem (Init _ ident expr) varType = do
 -- FUNCTION 
 
 checkFunction :: Pos -> [Arg] -> Type -> Block -> TypeCheckerMonad ()
-        (Fun args retType) <- checkExpr (EVar pos ident)
+    (Fun args retType) <- checkExpr (EVar pos ident)
     checkArgs args exprs
-    return retType
-    -- outsideEnv <- ask
-    -- env' <- local (const funEnv) $ evalArgs args exprs outsideEnv
-    -- env'' <- local (const env') $ execBlock block
-    -- if hasReturn env'' then 
-    --     getReturnValue env''
-    -- else 
-    --     return VVoid
+    env' <- evalArgs args exprs
+    env'' <- local (const env') $ execBlock block
+    if hasReturn env'' then 
+        retType <- getReturnValueType env''
+        if retType == retType then
+            return ()
+        else
+            throwError $ "Return type error - expected type " ++ show retType ++ " but got " ++ show retType ++ " in position (" ++ show pos ++ ")"
+    else 
+        case retType of
+            (Void _) -> return ()
+            _ -> throwError $ "No return value for function " ++ show ident
+
 ------- APPLICATION -------
-evalArg :: Arg -> Expr -> MyEnv -> TypeCheckerMonad TypeEnv
-evalArg (ValArg _ _ ident) expr outsideEnv = do
-    val <- local (const outsideEnv) $ checkExpr expr
+evalArg :: Arg -> Expr -> TypeCheckerMonad TypeEnv
+evalArg (ValArg pos _ ident) expr = do
+    exprType <- checkExpr expr
     env <- ask
-    (store, loc) <- get
-    let newEnv = Data.Map.insert ident loc env
-    let newStore = (Data.Map.insert loc val store, loc + 1)
-    put newStore
+    let newEnv = Data.Map.insert ident exprType env
     return newEnv
 
-evalArg (RefArg _ _ ident) expr outsideEnv = do
-    outsideIdent <- case expr of
+evalArg (RefArg pos _ ident) expr = do
+    exprIdent <- case expr of
         EVar _ ident -> return ident
-        _ -> throwError "Reference error - not a variable"
+        _ -> throwError "Reference error - argument " ++ show ident " is not a variable in position (" ++ show pos ++ ")"
     env <- ask
-    (store, loc) <- get
-    identLoc <- local (const outsideEnv) $ getVariableLocation outsideIdent
-    let newEnv = Data.Map.insert ident identLoc env
+    exprType <- getVariableType pos exprIdent
+    let newEnv = Data.Map.insert ident exprType env
     return newEnv
 
-evalArgs :: [Arg] -> [Expr] -> MyEnv -> TypeCheckerMonad TypeEnv
-evalArgs [] [] outsideEnv = do
+evalArgs :: [Arg] -> [Expr] -> TypeCheckerMonad TypeEnv
+evalArgs [] []  = do
     ask
 
-evalArgs (arg : args) (expr : exprs) outsideEnv = do
-    env <- evalArg arg expr outsideEnv
-    local (const env) $ evalArgs args exprs outsideEnv
+evalArgs (arg : args) (expr : exprs) = do
+    env <- evalArg arg expr 
+    local (const env) $ evalArgs args exprs 
 
