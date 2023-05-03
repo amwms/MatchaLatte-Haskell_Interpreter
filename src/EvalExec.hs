@@ -137,7 +137,10 @@ execStmt while@(While _ expr block) = do
     case val of
         VBool True -> do
             env' <- execBlock block
-            local (const env') $ execStmt while
+            if hasReturn env' then
+                return env'
+            else
+                local (const env') $ execStmt while
         VBool False -> ask
         _ -> throwError $ "While error - not a boolean value"
 
@@ -266,12 +269,17 @@ evalExpr (EApplic pos ident exprs) = do
     --     getReturnValue env''
     --DEBUG
     -- liftIO $ putStrLn $ "DEBUG in APLICATION:"
-    -- liftIO $ putStrLn $ "env: " ++ show env''
+    liftIO $ putStrLn $ "env: " ++ show env''
+    liftIO $ putStrLn $ "ret: " ++ show retType
 
+
+    -- TODO - if return value doesn't exist for return type =/= void throw error
     if hasReturn env'' then 
         getReturnValue env''
     else 
-        return VVoid
+        case retType of
+            (Void _) -> return VVoid
+            _ -> throwError $ "No return value for function " ++ show ident
         
 
 ------- APPLICATION -------
