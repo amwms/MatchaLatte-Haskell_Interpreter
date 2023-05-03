@@ -230,9 +230,9 @@ evalExpr (EAdd _ expr1 addOp expr2) = do
 evalExpr (ERel _ expr1 relOp expr2) = do
     val1 <- evalExpr expr1
     val2 <- evalExpr expr2
-    case (val1, val2) of
-        (VInt i1, VInt i2) -> return $ VBool $ evalRelOp relOp i1 i2
-        (VBool b1, VBool b2) -> return $ VBool $ evalRelOp relOp b1 b2
+    case (val1, val2, relOp) of
+        (VInt i1, VInt i2, _) -> return $ VBool $ evalRelOp relOp i1 i2
+        (VBool b1, VBool b2, EQU _) -> return $ VBool $ evalRelOp relOp b1 b2
         (VString s1, VString s2) -> return $ VBool $ evalRelOp relOp s1 s2
         _ -> throwError $ "Comparison error - not an integer, boolean or string value"
 
