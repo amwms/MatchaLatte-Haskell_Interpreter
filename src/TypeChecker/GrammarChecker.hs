@@ -198,8 +198,7 @@ checkExpr (EAdd pos expr1 addOp expr2) = do
         (String _, String _, Plus _) -> return $ String pos
         _ -> throwError $ "Addition error - cannot add/subtract types " ++ show valType1 ++ " and " ++ show valType2 ++ " in position (" ++ show pos ++ ")"
 
-------- REL -------
--- TODO can compare bool with == but not with <, <=, >=, > 
+------- REL ------- 
 checkExpr (ERel pos expr1 relOp expr2) = do
     valType1 <- checkExpr expr1
     valType2 <- checkExpr expr2
@@ -257,85 +256,54 @@ checkArgs (arg : args) (expr : exprs) outsideEnv = do
     checkArgs args exprs outsideEnv
 
 ---------- PROGRAM ------------
-
-execProgComps :: [ProgComp] -> TypeCheckerMonad TypeEnv
-execProgComps [] = do
+checkProgComps :: [ProgComp] -> TypeCheckerMonad TypeEnv
+checkProgComps [] = do
     ask
 
-execProgComps (comp : comps) = do
+checkProgComps (comp : comps) = do
+    env' <- checkProgComp comp
+    local (const env') $ checkProgComps comps
+
+
+checkProgram :: Program -> InterpreterMonad ()
+checkProgram (Program pos components) = do
     env <- ask
-    (store, last) <- get
-    env' <- local (const env) $ execProgComp comp
-    local (const env') $ execProgComps comps
+    env' <- local (const env) $ checkProgComps components
 
-
-execProgram :: Program -> InterpreterMonad Integer
-execProgram (Program pos components) = do
-    env <- ask
-    env' <- local (const env) $ execProgComps components
-    (store, last) <- get
-
-    -- DEBUG
-    -- liftIO (putStrLn $ "ENV :  " ++ show env')
-    -- liftIO (putStrLn $ "STORE : " ++ show store)
-
-
-    -- TODO -  run all porgram components and then run Expr Application of main
-    -- and return that value
-    loc <- local (const env') $ getVariableLocation (Ident "main")
-    
-    intVal <- local (const env') $ checkExpr (EApplic pos (Ident "main") [])
-    case intVal of
-        VInt i -> return i
+    mainType <- local (const env') $ getVariableType (Ident "main")
+    case mainType of
+        Int _ -> return ()
         _ -> throwError "Main function must return an integer value"
-    -- return 0
 
--- TODO
-execProgComp :: ProgComp -> TypeCheckerMonad TypeEnv
-execProgComp (FunDecl _ retType ident args block) = do
-    env <- ask
-    (store, loc) <- get
-    let newEnv = Data.Map.insert ident loc env
-    let newStore = (Data.Map.insert loc (VFun args retType block newEnv) store, loc + 1)
-    put newStore
-    return newEnv
+checkProgComp :: ProgComp -> TypeCheckerMonad TypeEnv
+checkProgComp (FunDecl pos retType ident args block) = do
+    checkFunction pos args retType block
 
-execProgComp (VarDecl _ varType items) = do
-    env <- ask
-    case varType of
-        Int _ -> local (const env) $ evalItems items $ VInt 0
-        Str _ -> local (const env) $ evalItems items $ VString ""
-        Bool _ -> local (const env) $ evalItems items $ VBool False
-        Void _ -> local (const env) $ evalItems items VVoid
-        (Fun x argTypes retType) -> local (const env) $ evalItems items $ VFun [] retType (Block x [Empty x]) env
+checkProgComp (VarDecl _ varType items) = do
+    evalItems items varType
 
-evalItems :: [Item] -> Value -> TypeCheckerMonad TypeEnv
+evalItems :: [Item] -> Type -> TypeCheckerMonad TypeEnv
 evalItems [] _ = do
     ask
 
-evalItems (item : items) defaultValue = do
-    env <- ask
-    (store, loc) <- get
-    env' <- local (const env) $ evalItem item defaultValue
-    local (const env') $ evalItems items defaultValue
+evalItems (item : items) varType = do
+    env' <- evalItem item varType
+    local (const env') $ evalItems items varType
 
-evalItem :: Item -> Value -> TypeCheckerMonad TypeEnv
-evalItem (NoInit _ ident) defaultValue = do
+evalItem :: Item -> Type -> TypeCheckerMonad TypeEnv
+evalItem (NoInit _ ident) varType = do
     env <- ask
-    (store, loc) <- get
-    let newEnv = Data.Map.insert ident loc env
-    let newStore = (Data.Map.insert loc defaultValue store, loc + 1)
-    put newStore
+    let newEnv = Data.Map.insert ident varType env
     return newEnv
 
-evalItem (Init _ ident expr) _ = do
-    value <- checkExpr expr
-    env <- ask
-    (store, loc) <- get
-    let newEnv = Data.Map.insert ident loc env
-    let newStore = (Data.Map.insert loc value store, loc + 1)
-    put newStore
-    return newEnv
+evalItem (Init _ ident expr) varType = do
+    exprType <- checkExpr expr
+    if exprType == varType then do
+        env <- ask
+        let newEnv = Data.Map.insert ident varType env
+        return newEnv
+    else
+        throwError $ "Initialization error - expected type " ++ show varType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
 
 
 -- FUNCTION 
