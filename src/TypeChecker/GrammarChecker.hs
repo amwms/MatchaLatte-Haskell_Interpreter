@@ -278,6 +278,9 @@ checkProgram (Program pos components) = do
 checkProgComp :: ProgComp -> TypeCheckerMonad TypeEnv
 checkProgComp (FunDecl pos retType ident args block) = do
     checkFunction pos args retType block
+    env <- ask
+    let newEnv = Data.Map.insert ident (Fun pos args retType) env
+    return newEnv
 
 checkProgComp (VarDecl _ varType items) = do
     evalItems items varType
