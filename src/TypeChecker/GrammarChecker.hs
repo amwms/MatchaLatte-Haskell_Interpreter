@@ -59,7 +59,7 @@ checkStmt (Assign pos ident expr) = do
     exprType <- checkExpr expr
     varType <- getVariableType pos ident
 
-    if varType == exprType then
+    if compareTypes varType exprType then
         return env
     else
         throwError $ "Assign error (" ++ show pos ++ ") - variable " ++ show ident ++ " is of type " ++ show varType ++ " but expression is of type " ++ show exprType
@@ -87,26 +87,46 @@ checkStmt (StmtExp _ expr) = do
 checkStmt (Ret pos expr) = do
     env <- ask
     exprType <- checkExpr expr
-    if not(hasReturn env) then do
-        let newEnv = Data.Map.insert (Ident "return") exprType env
-        return newEnv
+
+    functionRetType <- case Data.Map.lookup (Ident "@return") env of
+        Just funRetType -> return funRetType
+        Nothing -> throwError $ "Return outside of function in position " ++ show pos
+
+    if not(compareTypes functionRetType exprType) then
+        throwError $ "Return type error - expected type " ++ show functionRetType ++ " but return value was type " ++ show exprType ++ " in position (" ++ show pos ++ ")"
     else do
-        retType <- getReturnType pos env
-        if exprType == retType then
-            return env
+        if not(hasReturn env) then do
+            let newEnv = Data.Map.insert (Ident "return") exprType env
+            return newEnv
         else
-            throwError $ "Return error - different return types in function (" ++ show pos ++ ")"
+            return env
+    -- else do
+    --     retType <- getReturnType pos env
+    --     if compareTypes exprType retType then
+    --         return env
+    --     else
+    --         throwError $ "Return error - different return types in function (" ++ show pos ++ ")"
 
 checkStmt (VRet pos) = do
     env <- ask
-    if not(hasReturn env) then do
-        let newEnv = Data.Map.insert (Ident "return") (Void pos) env
-        return newEnv
+    
+    functionRetType <- case Data.Map.lookup (Ident "@return") env of
+        Just funRetType -> return funRetType
+        Nothing -> throwError $ "Return outside of function in position " ++ show pos
+
+    if not(compareTypes functionRetType (Void pos)) then
+        throwError $ "Return type error - expected type " ++ show functionRetType ++ " but return value was type Void in position (" ++ show pos ++ ")"    
     else do
-        retType <- getReturnType pos env
-        case retType of
-           (Void _) -> return env
-           _ -> throwError $ "Return error - different return types in function (" ++ show pos ++ ")"
+        if not(hasReturn env) then do
+            let newEnv = Data.Map.insert (Ident "return") (Void pos) env
+            return newEnv
+        else   
+            return env
+    -- else do
+    --     retType <- getReturnType pos env
+    --     case retType of
+    --        (Void _) -> return env
+    --        _ -> throwError $ "Return error - different return types in function (" ++ show pos ++ ")"
 
 checkStmt (If pos expr block) = do
     valType <- checkExpr expr
@@ -234,7 +254,7 @@ checkExpr (EApplic pos ident exprs) = do
 checkArg :: ArgType -> Expr -> TypeCheckerMonad ()
 checkArg (ValArgType pos argType) expr = do
     exprType <- checkExpr expr
-    if exprType == argType then
+    if compareTypes exprType argType then
         return ()
     else
         throwError $ "Argument error - expected type " ++ show argType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
@@ -244,7 +264,7 @@ checkArg (RefArgType pos argType) expr = do
         EVar _ id -> return id
         _ -> throwError $ "Reference error - argument is not a variable but regular expression in position (" ++ show pos ++ ")"
     exprType <- checkExpr expr
-    if exprType == argType then
+    if compareTypes exprType argType then
         return ()
     else
         throwError $ "Argument error - expected type " ++ show argType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
@@ -270,9 +290,6 @@ checkProgComps (comp : comps) = do
 checkProgram :: Program -> TypeCheckerMonad ()
 checkProgram (Program pos components) = do
     env' <- checkProgComps components
-
-    liftIO $ putStrLn $ show env'
-
     mainType <- local (const env') $ getVariableType pos (Ident "main")
     case mainType of
         (Fun _ _ (Int _)) -> return ()
@@ -305,7 +322,7 @@ evalItem (NoInit _ ident) varType = do
 
 evalItem (Init pos ident expr) varType = do
     exprType <- checkExpr expr
-    if exprType == varType then do
+    if compareTypes exprType varType then do
         env <- ask
         let newEnv = Data.Map.insert ident varType env
         return newEnv
@@ -318,17 +335,25 @@ evalItem (Init pos ident expr) varType = do
 checkFunction :: BNFC'Position -> [Arg] -> Type -> Block -> TypeCheckerMonad ()
 checkFunction pos args retType block = do
     env' <- evalArgs args 
-    env'' <- local (const env') $ checkBlock block
+    envWithReturn <- local (const env') $ addReturn retType
+    env'' <- local (const envWithReturn) $ checkBlock block
     if hasReturn env'' then do
-        retType <- getReturnType pos env''
-        if retType == retType then
-            return ()
-        else
-            throwError $ "Return type error - expected type " ++ show retType ++ " but got " ++ show retType ++ " in position (" ++ show pos ++ ")"
+        return ()
+        -- evalRetType <- getReturnType pos env''
+        -- if compareTypes retType evalRetType then
+        --     return ()
+        -- else
+        --     throwError $ "Return type error - expected type " ++ show retType ++ " but return value was type " ++ show evalRetType ++ " in position (" ++ show pos ++ ")"
     else 
         case retType of
             (Void _) -> return ()
             _ -> throwError $ "No return value for function in position" ++ show pos ++ " but expected type " ++ show retType
+
+addReturn :: Type -> TypeCheckerMonad TypeEnv
+addReturn retType = do
+    env <- ask
+    let newEnv = Data.Map.insert (Ident "@return") retType env
+    return newEnv
 
 ----- APPLICATION -------
 evalArg :: Arg -> TypeCheckerMonad TypeEnv

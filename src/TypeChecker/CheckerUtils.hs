@@ -33,3 +33,13 @@ getArgTypes ((ValArg pos argType ident):args) = do
 getArgTypes ((RefArg pos argType ident):args) = do
     argTypes <- getArgTypes args
     return $ (RefArgType pos argType):argTypes
+
+compareTypes :: Type -> Type -> Bool
+compareTypes type1 type2 = do
+    case (type1, type2) of
+        (Int _, Int _) -> True
+        (Str _, Str _) -> True
+        (Bool _, Bool _) -> True
+        (Fun _ _ _, Fun _ _ _) -> True
+        (Void _, Void _) -> True
+        _ -> False
