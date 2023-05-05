@@ -204,9 +204,14 @@ instance Print (Grammar.Abs.Type' a) where
     Grammar.Abs.Str _ -> prPrec i 0 (concatD [doc (showString "string")])
     Grammar.Abs.Bool _ -> prPrec i 0 (concatD [doc (showString "bool")])
     Grammar.Abs.Void _ -> prPrec i 0 (concatD [doc (showString "void")])
-    Grammar.Abs.Fun _ types type_ -> prPrec i 0 (concatD [doc (showString "fun"), doc (showString "["), doc (showString "("), prt 0 types, doc (showString ")"), doc (showString "->"), prt 0 type_, doc (showString "]")])
+    Grammar.Abs.Fun _ argtypes type_ -> prPrec i 0 (concatD [doc (showString "fun"), doc (showString "["), doc (showString "("), prt 0 argtypes, doc (showString ")"), doc (showString "->"), prt 0 type_, doc (showString "]")])
 
-instance Print [Grammar.Abs.Type' a] where
+instance Print (Grammar.Abs.ArgType' a) where
+  prt i = \case
+    Grammar.Abs.ValArgType _ type_ -> prPrec i 0 (concatD [prt 0 type_])
+    Grammar.Abs.RefArgType _ type_ -> prPrec i 0 (concatD [prt 0 type_, doc (showString "@")])
+
+instance Print [Grammar.Abs.ArgType' a] where
   prt _ [] = concatD []
   prt _ [x] = concatD [prt 0 x]
   prt _ (x:xs) = concatD [prt 0 x, doc (showString ","), prt 0 xs]

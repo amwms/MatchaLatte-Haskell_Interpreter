@@ -64,7 +64,12 @@ transType x = case x of
   Grammar.Abs.Str _ -> failure x
   Grammar.Abs.Bool _ -> failure x
   Grammar.Abs.Void _ -> failure x
-  Grammar.Abs.Fun _ types type_ -> failure x
+  Grammar.Abs.Fun _ argtypes type_ -> failure x
+
+transArgType :: Show a => Grammar.Abs.ArgType' a -> Result
+transArgType x = case x of
+  Grammar.Abs.ValArgType _ type_ -> failure x
+  Grammar.Abs.RefArgType _ type_ -> failure x
 
 transExpr :: Show a => Grammar.Abs.Expr' a -> Result
 transExpr x = case x of
