@@ -165,7 +165,7 @@ checkExpr (EFalse pos) = return $ Bool pos
 checkExpr (EString pos _) = return $ Str pos
 
 checkExpr (ELambda pos args retType block) = do
-    -- checkFunction pos args retType block 
+    checkFunction pos args retType block 
     argTypes <- getArgTypes args
     return $ Fun pos argTypes retType
 
@@ -280,7 +280,7 @@ checkProgram (Program pos components) = do
 
 checkProgComp :: ProgComp -> TypeCheckerMonad TypeEnv
 checkProgComp (FunDecl pos retType ident args block) = do
-    -- checkFunction pos args retType block
+    checkFunction pos args retType block
     env <- ask
     argTypes <- getArgTypes args
     let newEnv = Data.Map.insert ident (Fun pos argTypes retType) env
@@ -315,45 +315,38 @@ evalItem (Init pos ident expr) varType = do
 
 -- -- FUNCTION 
 
--- checkFunction :: BNFC'Position -> [Arg] -> Type -> Block -> TypeCheckerMonad ()
--- checkFunction pos args retType block = do
---     -- (Fun p args retType) <- checkExpr (EVar pos ident)
---     -- checkArgs args exprs
---     env' <- evalArgs args exprs
---     env'' <- local (const env') $ execBlock block
---     if hasReturn env'' then do
---         retType <- getReturnValueType env''
---         if retType == retType then
---             return ()
---         else
---             throwError $ "Return type error - expected type " ++ show retType ++ " but got " ++ show retType ++ " in position (" ++ show pos ++ ")"
---     else 
---         case retType of
---             (Void _) -> return ()
---             _ -> throwError $ "No return value for function " ++ show ident
+checkFunction :: BNFC'Position -> [Arg] -> Type -> Block -> TypeCheckerMonad ()
+checkFunction pos args retType block = do
+    env' <- evalArgs args 
+    env'' <- local (const env') $ checkBlock block
+    if hasReturn env'' then do
+        retType <- getReturnType pos env''
+        if retType == retType then
+            return ()
+        else
+            throwError $ "Return type error - expected type " ++ show retType ++ " but got " ++ show retType ++ " in position (" ++ show pos ++ ")"
+    else 
+        case retType of
+            (Void _) -> return ()
+            _ -> throwError $ "No return value for function in position" ++ show pos ++ " but expected type " ++ show retType
 
-------- APPLICATION -------
--- evalArg :: Arg -> Expr -> TypeCheckerMonad TypeEnv
--- evalArg (ValArg pos _ ident) expr = do
---     exprType <- checkExpr expr
---     env <- ask
---     let newEnv = Data.Map.insert ident exprType env
---     return newEnv
+----- APPLICATION -------
+evalArg :: Arg -> TypeCheckerMonad TypeEnv
+evalArg (ValArg pos argType ident) = do
+    env <- ask
+    let newEnv = Data.Map.insert ident argType env
+    return newEnv
 
--- evalArg (RefArg pos _ ident) expr = do
---     exprIdent <- case expr of
---         EVar _ ident -> return ident
---         _ -> throwError "Reference error - argument " ++ show ident " is not a variable in position (" ++ show pos ++ ")"
---     env <- ask
---     exprType <- getVariableType pos exprIdent
---     let newEnv = Data.Map.insert ident exprType env
---     return newEnv
+evalArg (RefArg pos argType ident) = do
+    env <- ask
+    let newEnv = Data.Map.insert ident argType env
+    return newEnv
 
--- evalArgs :: [Arg] -> [Expr] -> TypeCheckerMonad TypeEnv
--- evalArgs [] []  = do
---     ask
+evalArgs :: [Arg] -> TypeCheckerMonad TypeEnv
+evalArgs [] = do
+    ask
 
--- evalArgs (arg : args) (expr : exprs) = do
---     env <- evalArg arg expr 
---     local (const env) $ evalArgs args exprs 
+evalArgs (arg : args) = do
+    env <- evalArg arg
+    local (const env) $ evalArgs args 
 
