@@ -88,10 +88,12 @@ All other symbols are terminals.
   |  |  **|**  | ``string``
   |  |  **|**  | ``bool``
   |  |  **|**  | ``void``
-  |  |  **|**  | ``fun`` ``[`` ``(`` //[Type]// ``)`` ``->`` //Type// ``]``
-  | //[Type]// | -> | **eps**
-  |  |  **|**  | //Type//
-  |  |  **|**  | //Type// ``,`` //[Type]//
+  |  |  **|**  | ``fun`` ``[`` ``(`` //[ArgType]// ``)`` ``->`` //Type// ``]``
+  | //ArgType// | -> | //Type//
+  |  |  **|**  | //Type// ``@``
+  | //[ArgType]// | -> | **eps**
+  |  |  **|**  | //ArgType//
+  |  |  **|**  | //ArgType// ``,`` //[ArgType]//
   | //Expr6// | -> | //Ident//
   |  |  **|**  | //Integer//
   |  |  **|**  | ``true``

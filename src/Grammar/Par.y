@@ -146,13 +146,18 @@ Type
   | 'string' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Str (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1))) }
   | 'bool' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Bool (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1))) }
   | 'void' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Void (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1))) }
-  | 'fun' '[' '(' ListType ')' '->' Type ']' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Fun (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $4) (snd $7)) }
+  | 'fun' '[' '(' ListArgType ')' '->' Type ']' { (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1), Grammar.Abs.Fun (uncurry Grammar.Abs.BNFC'Position (tokenLineCol $1)) (snd $4) (snd $7)) }
 
-ListType :: { (Grammar.Abs.BNFC'Position, [Grammar.Abs.Type]) }
-ListType
+ArgType :: { (Grammar.Abs.BNFC'Position, Grammar.Abs.ArgType) }
+ArgType
+  : Type { (fst $1, Grammar.Abs.ValArgType (fst $1) (snd $1)) }
+  | Type '@' { (fst $1, Grammar.Abs.RefArgType (fst $1) (snd $1)) }
+
+ListArgType :: { (Grammar.Abs.BNFC'Position, [Grammar.Abs.ArgType]) }
+ListArgType
   : {- empty -} { (Grammar.Abs.BNFC'NoPosition, []) }
-  | Type { (fst $1, (:[]) (snd $1)) }
-  | Type ',' ListType { (fst $1, (:) (snd $1) (snd $3)) }
+  | ArgType { (fst $1, (:[]) (snd $1)) }
+  | ArgType ',' ListArgType { (fst $1, (:) (snd $1) (snd $3)) }
 
 Expr6 :: { (Grammar.Abs.BNFC'Position, Grammar.Abs.Expr) }
 Expr6

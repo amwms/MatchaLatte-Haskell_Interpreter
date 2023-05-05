@@ -12,8 +12,9 @@ getValueFromMemory :: Ident -> InterpreterMonad Value
 getValueFromMemory ident = do
     env <- ask
     (store, _) <- get
-    liftIO (putStrLn $ show ident)
-    liftIO (putStrLn $ show env)
+    -- DEBUG
+    -- liftIO (putStrLn $ show ident)
+    -- liftIO (putStrLn $ show env)
     case Data.Map.lookup ident env of
         Just loc -> return (findWithDefault VVoid loc store)
         Nothing -> throwError (show ident ++ " not found")

@@ -269,8 +269,8 @@ evalExpr (EApplic pos ident exprs) = do
     --     getReturnValue env''
     --DEBUG
     -- liftIO $ putStrLn $ "DEBUG in APLICATION:"
-    liftIO $ putStrLn $ "env: " ++ show env''
-    liftIO $ putStrLn $ "ret: " ++ show retType
+    -- liftIO $ putStrLn $ "env: " ++ show env''
+    -- liftIO $ putStrLn $ "ret: " ++ show retType
 
 
     -- TODO - if return value doesn't exist for return type =/= void throw error
