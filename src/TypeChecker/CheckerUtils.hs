@@ -24,3 +24,12 @@ getReturnType pos env =
     case Data.Map.lookup (Ident "return") env of
         Just (retType) -> return retType
         Nothing -> return (Void pos)
+
+getArgTypes :: [Arg] -> TypeCheckerMonad [ArgType]
+getArgTypes [] = return []
+getArgTypes ((ValArg pos argType ident):args) = do
+    argTypes <- getArgTypes args
+    return $ (ValArgType pos argType):argTypes
+getArgTypes ((RefArg pos argType ident):args) = do
+    argTypes <- getArgTypes args
+    return $ (RefArgType pos argType):argTypes

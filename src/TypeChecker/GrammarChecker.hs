@@ -25,115 +25,115 @@ import TypeChecker.CheckerUtils
 --     | IfElse a (Expr a) (Block a) (Block a)
 --     | While a (Expr a) (Block a)
 
-checkStmts :: [Stmt] -> TypeCheckerMonad TypeEnv
-checkStmts [] = do
-    ask
+-- checkStmts :: [Stmt] -> TypeCheckerMonad TypeEnv
+-- checkStmts [] = do
+--     ask
 
-checkStmts (stmt : stmts) = do
-    env' <- checkStmt stmt
-    local (const env') (checkStmts stmts)
+-- checkStmts (stmt : stmts) = do
+--     env' <- checkStmt stmt
+--     local (const env') (checkStmts stmts)
 
-checkBlock :: Block -> TypeCheckerMonad TypeEnv 
-checkBlock (Block pos stmts) = do
-    env <- ask
-    env' <- local (const env) $ checkStmts stmts
-    if hasReturn env' then do
-        valType <- local (const env') $ getVariableType pos (Ident "return")
-        let newEnv = Data.Map.insert (Ident "return") valType env
-        return newEnv
-    else
-        return env
+-- checkBlock :: Block -> TypeCheckerMonad TypeEnv 
+-- checkBlock (Block pos stmts) = do
+--     env <- ask
+--     env' <- local (const env) $ checkStmts stmts
+--     if hasReturn env' then do
+--         valType <- local (const env') $ getVariableType pos (Ident "return")
+--         let newEnv = Data.Map.insert (Ident "return") valType env
+--         return newEnv
+--     else
+--         return env
 
-checkStmt :: Stmt -> TypeCheckerMonad TypeEnv
-checkStmt (Empty _) = do
-    ask
+-- checkStmt :: Stmt -> TypeCheckerMonad TypeEnv
+-- checkStmt (Empty _) = do
+--     ask
 
-checkStmt (StmtBlock _ block) = do
-    checkBlock block
+-- checkStmt (StmtBlock _ block) = do
+--     checkBlock block
 
-checkStmt (StmtComp _ component) = do
-    checkProgComp component
+-- checkStmt (StmtComp _ component) = do
+--     checkProgComp component
 
-checkStmt (Assign pos ident expr) = do
-    env <- ask
-    exprType <- checkExpr expr
-    varType <- getVariableType pos ident
+-- checkStmt (Assign pos ident expr) = do
+--     env <- ask
+--     exprType <- checkExpr expr
+--     varType <- getVariableType pos ident
 
-    if varType == exprType then
-        return env
-    else
-        throwError $ "Assign error (" ++ show pos ++ ") - variable " ++ show ident ++ " is of type " ++ show varType ++ " but expression is of type " ++ show exprType
+--     if varType == exprType then
+--         return env
+--     else
+--         throwError $ "Assign error (" ++ show pos ++ ") - variable " ++ show ident ++ " is of type " ++ show varType ++ " but expression is of type " ++ show exprType
 
-checkStmt (Incr pos ident) = do
-    env <- ask
+-- checkStmt (Incr pos ident) = do
+--     env <- ask
 
-    valType <- getVariableType pos ident
-    case valType of
-        Int _ -> return env
-        _ -> throwError $ "Increment error (" ++ show pos ++ ") - variable " ++ show ident ++ " is of type " ++ show  valType ++ " and not an integer"
+--     valType <- getVariableType pos ident
+--     case valType of
+--         Int _ -> return env
+--         _ -> throwError $ "Increment error (" ++ show pos ++ ") - variable " ++ show ident ++ " is of type " ++ show  valType ++ " and not an integer"
 
-checkStmt (Decr pos ident) = do
-    env <- ask
+-- checkStmt (Decr pos ident) = do
+--     env <- ask
 
-    valType <- getVariableType pos ident
-    case valType of
-        Int _ -> return env
-        _ -> throwError $ "Decrement error (" ++ show pos ++ ") - variable " ++ show ident ++ " is of type " ++ show  valType ++ " and not an integer"
+--     valType <- getVariableType pos ident
+--     case valType of
+--         Int _ -> return env
+--         _ -> throwError $ "Decrement error (" ++ show pos ++ ") - variable " ++ show ident ++ " is of type " ++ show  valType ++ " and not an integer"
 
-checkStmt (StmtExp _ expr) = do
-    checkExpr expr
-    ask
+-- checkStmt (StmtExp _ expr) = do
+--     checkExpr expr
+--     ask
 
-checkStmt (Ret pos expr) = do
-    env <- ask
-    exprType <- checkExpr expr
-    if not(hasReturn env) then do
-        let newEnv = Data.Map.insert (Ident "return") exprType env
-        return newEnv
-    else do
-        retType <- getReturnType pos env
-        if exprType == retType then
-            return env
-        else
-            throwError $ "Return error - different return types in function (" ++ show pos ++ ")"
+-- checkStmt (Ret pos expr) = do
+--     env <- ask
+--     exprType <- checkExpr expr
+--     if not(hasReturn env) then do
+--         let newEnv = Data.Map.insert (Ident "return") exprType env
+--         return newEnv
+--     else do
+--         retType <- getReturnType pos env
+--         if exprType == retType then
+--             return env
+--         else
+--             throwError $ "Return error - different return types in function (" ++ show pos ++ ")"
 
-checkStmt (VRet pos) = do
-    env <- ask
-    if not(hasReturn env) then do
-        let newEnv = Data.Map.insert (Ident "return") (Void pos) env
-        return newEnv
-    else do
-        retType <- getReturnType pos env
-        case retType of
-           (Void _) -> return env
-           _ -> throwError $ "Return error - different return types in function (" ++ show pos ++ ")"
+-- checkStmt (VRet pos) = do
+--     env <- ask
+--     if not(hasReturn env) then do
+--         let newEnv = Data.Map.insert (Ident "return") (Void pos) env
+--         return newEnv
+--     else do
+--         retType <- getReturnType pos env
+--         case retType of
+--            (Void _) -> return env
+--            _ -> throwError $ "Return error - different return types in function (" ++ show pos ++ ")"
 
-checkStmt (If pos expr block) = do
-    valType <- checkExpr expr
-    case valType of
-        Bool _ -> checkBlock block
-        _ -> throwError $ "If error - expression in pos " ++ show pos ++ " is not a boolean value"
+-- checkStmt (If pos expr block) = do
+--     valType <- checkExpr expr
+--     case valType of
+--         Bool _ -> checkBlock block
+--         _ -> throwError $ "If error - expression in pos " ++ show pos ++ " is not a boolean value"
 
-checkStmt (IfElse pos expr block1 block2) = do
-    valType <- checkExpr expr
-    case valType of
-        Bool _ -> checkBlock block1 >> checkBlock block2
-        _ -> throwError $ "If error - expression in pos " ++ show pos ++ " is not a boolean value"
+-- checkStmt (IfElse pos expr block1 block2) = do
+--     valType <- checkExpr expr
+--     case valType of
+--         Bool _ -> checkBlock block1 >> checkBlock block2
+--         _ -> throwError $ "If error - expression in pos " ++ show pos ++ " is not a boolean value"
 
-checkStmt (While pos expr block) = do
-    val <- checkExpr expr
-    case val of
-        Bool _ -> checkBlock block
-        _ -> throwError $ "While error - expression in pos " ++ show pos ++ " is not a boolean value"
+-- checkStmt (While pos expr block) = do
+--     val <- checkExpr expr
+--     case val of
+--         Bool _ -> checkBlock block
+--         _ -> throwError $ "While error - expression in pos " ++ show pos ++ " is not a boolean value"
 
-checkStmt (Print pos expr) = do
-    valType <- checkExpr expr
-    case valType of
-        Int _ -> ask
-        Bool _ -> ask
-        Str _ -> ask
-        Void _ -> ask
-        _ -> throwError "Print error - expression in pos " ++ show pos ++ " is not a printable value"
+-- checkStmt (Print pos expr) = do
+--     valType <- checkExpr expr
+--     case valType of
+--         Int _ -> ask
+--         Bool _ -> ask
+--         Str _ -> ask
+--         Void _ -> ask
+--         _ -> throwError "Print error - expression in pos " ++ show pos ++ " is not a printable value"
 
 
 ------ EXPRESSIONS -----
@@ -166,7 +166,8 @@ checkExpr (EString pos _) = return $ Str pos
 
 checkExpr (ELambda pos args retType block) = do
     -- checkFunction pos args retType block 
-    return $ Fun pos args retType
+    argTypes <- getArgTypes args
+    return $ Fun pos argTypes retType
 
 ------ NOT -------
 checkExpr (ENot pos expr) = do
@@ -187,7 +188,7 @@ checkExpr (EMul pos expr1 mulOp expr2) = do
     valType1 <- checkExpr expr1
     valType2 <- checkExpr expr2
     case (valType1, valType2) of
-        (Int _, Int _, _) -> return $ Int pos
+        (Int _, Int _) -> return $ Int pos
         _ -> throwError $ "Multiplication error - cannot multiply/divide types " ++ show valType1 ++ " and " ++ show valType2 ++ " in position (" ++ show pos ++ ")"
 
 ------- ADD -------
@@ -226,88 +227,88 @@ checkExpr (EOr pos expr1 expr2) = do
         _ -> throwError $ "Or error in position (" ++ show pos ++ ") - " ++ show valType1 ++ " and " ++ show valType2 ++ " are not both boolean values"
 
 checkExpr (EApplic pos ident exprs) = do
-    (Fun _ args retType) <- checkExpr (EVar pos ident)
-    checkArgs args exprs
+    (Fun _ argTypes retType) <- checkExpr (EVar pos ident)
+    checkArgs argTypes exprs 
     return retType
 
-checkArg :: Arg -> Expr -> TypeEnv -> TypeCheckerMonad ()
-checkArg (ValArg pos argType _) expr outsideEnv = do
-    exprType <- local (const outsideEnv) $ checkExpr expr
+checkArg :: ArgType -> Expr -> TypeCheckerMonad ()
+checkArg (ValArgType pos argType) expr = do
+    exprType <- checkExpr expr
     if exprType == argType then
         return ()
     else
         throwError $ "Argument error - expected type " ++ show argType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
 
-checkArg (RefArg pos argType ident) expr outsideEnv = do
+checkArg (RefArgType pos argType) expr = do
     outsideIdent <- case expr of
         EVar _ id -> return id
-        _ -> throwError "Reference error - argument " ++ show ident " is not a variable but regular expression in position (" ++ show pos ++ ")"
-    exprType <- local (const outsideEnv) $ checkExpr expr
+        _ -> throwError $ "Reference error - argument is not a variable but regular expression in position (" ++ show pos ++ ")"
+    exprType <- checkExpr expr
     if exprType == argType then
         return ()
     else
         throwError $ "Argument error - expected type " ++ show argType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
 
-checkArgs :: [Arg] -> [Expr] -> TypeEnv -> TypeCheckerMonad ()
-checkArgs [] [] outsideEnv = do
-    ask
+checkArgs :: [ArgType] -> [Expr] -> TypeCheckerMonad ()
+checkArgs [] [] = do
+    return ()
 
-checkArgs (arg : args) (expr : exprs) outsideEnv = do
-    checkArg arg expr outsideEnv
-    checkArgs args exprs outsideEnv
+checkArgs (arg : args) (expr : exprs) = do
+    checkArg arg expr
+    checkArgs args exprs
 
----------- PROGRAM ------------
-checkProgComps :: [ProgComp] -> TypeCheckerMonad TypeEnv
-checkProgComps [] = do
-    ask
+-- ---------- PROGRAM ------------
+-- checkProgComps :: [ProgComp] -> TypeCheckerMonad TypeEnv
+-- checkProgComps [] = do
+--     ask
 
-checkProgComps (comp : comps) = do
-    env' <- checkProgComp comp
-    local (const env') $ checkProgComps comps
+-- checkProgComps (comp : comps) = do
+--     env' <- checkProgComp comp
+--     local (const env') $ checkProgComps comps
 
 
-checkProgram :: Program -> TypeCheckerMonad ()
-checkProgram (Program pos components) = do
-    env <- ask
-    env' <- local (const env) $ checkProgComps components
+-- checkProgram :: Program -> TypeCheckerMonad ()
+-- checkProgram (Program pos components) = do
+--     env <- ask
+--     env' <- local (const env) $ checkProgComps components
 
-    mainType <- local (const env') $ getVariableType (Ident "main")
-    case mainType of
-        Int _ -> return ()
-        _ -> throwError "Main function must return an integer value"
+--     mainType <- local (const env') $ getVariableType (Ident "main")
+--     case mainType of
+--         Int _ -> return ()
+--         _ -> throwError "Main function must return an integer value"
 
-checkProgComp :: ProgComp -> TypeCheckerMonad TypeEnv
-checkProgComp (FunDecl pos retType ident args block) = do
-    -- checkFunction pos args retType block
-    env <- ask
-    let newEnv = Data.Map.insert ident (Fun pos args retType) env
-    return newEnv
+-- checkProgComp :: ProgComp -> TypeCheckerMonad TypeEnv
+-- checkProgComp (FunDecl pos retType ident args block) = do
+--     -- checkFunction pos args retType block
+--     env <- ask
+--     let newEnv = Data.Map.insert ident (Fun pos args retType) env
+--     return newEnv
 
-checkProgComp (VarDecl _ varType items) = do
-    evalItems items varType
+-- checkProgComp (VarDecl _ varType items) = do
+--     evalItems items varType
 
-evalItems :: [Item] -> Type -> TypeCheckerMonad TypeEnv
-evalItems [] _ = do
-    ask
+-- evalItems :: [Item] -> Type -> TypeCheckerMonad TypeEnv
+-- evalItems [] _ = do
+--     ask
 
-evalItems (item : items) varType = do
-    env' <- evalItem item varType
-    local (const env') $ evalItems items varType
+-- evalItems (item : items) varType = do
+--     env' <- evalItem item varType
+--     local (const env') $ evalItems items varType
 
-evalItem :: Item -> Type -> TypeCheckerMonad TypeEnv
-evalItem (NoInit _ ident) varType = do
-    env <- ask
-    let newEnv = Data.Map.insert ident varType env
-    return newEnv
+-- evalItem :: Item -> Type -> TypeCheckerMonad TypeEnv
+-- evalItem (NoInit _ ident) varType = do
+--     env <- ask
+--     let newEnv = Data.Map.insert ident varType env
+--     return newEnv
 
-evalItem (Init pos ident expr) varType = do
-    exprType <- checkExpr expr
-    if exprType == varType then do
-        env <- ask
-        let newEnv = Data.Map.insert ident varType env
-        return newEnv
-    else
-        throwError $ "Initialization error - expected type " ++ show varType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
+-- evalItem (Init pos ident expr) varType = do
+--     exprType <- checkExpr expr
+--     if exprType == varType then do
+--         env <- ask
+--         let newEnv = Data.Map.insert ident varType env
+--         return newEnv
+--     else
+--         throwError $ "Initialization error - expected type " ++ show varType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
 
 
 -- -- FUNCTION 
@@ -330,27 +331,27 @@ evalItem (Init pos ident expr) varType = do
 --             _ -> throwError $ "No return value for function " ++ show ident
 
 ------- APPLICATION -------
-evalArg :: Arg -> Expr -> TypeCheckerMonad TypeEnv
-evalArg (ValArg pos _ ident) expr = do
-    exprType <- checkExpr expr
-    env <- ask
-    let newEnv = Data.Map.insert ident exprType env
-    return newEnv
+-- evalArg :: Arg -> Expr -> TypeCheckerMonad TypeEnv
+-- evalArg (ValArg pos _ ident) expr = do
+--     exprType <- checkExpr expr
+--     env <- ask
+--     let newEnv = Data.Map.insert ident exprType env
+--     return newEnv
 
-evalArg (RefArg pos _ ident) expr = do
-    exprIdent <- case expr of
-        EVar _ ident -> return ident
-        _ -> throwError "Reference error - argument " ++ show ident " is not a variable in position (" ++ show pos ++ ")"
-    env <- ask
-    exprType <- getVariableType pos exprIdent
-    let newEnv = Data.Map.insert ident exprType env
-    return newEnv
+-- evalArg (RefArg pos _ ident) expr = do
+--     exprIdent <- case expr of
+--         EVar _ ident -> return ident
+--         _ -> throwError "Reference error - argument " ++ show ident " is not a variable in position (" ++ show pos ++ ")"
+--     env <- ask
+--     exprType <- getVariableType pos exprIdent
+--     let newEnv = Data.Map.insert ident exprType env
+--     return newEnv
 
-evalArgs :: [Arg] -> [Expr] -> TypeCheckerMonad TypeEnv
-evalArgs [] []  = do
-    ask
+-- evalArgs :: [Arg] -> [Expr] -> TypeCheckerMonad TypeEnv
+-- evalArgs [] []  = do
+--     ask
 
-evalArgs (arg : args) (expr : exprs) = do
-    env <- evalArg arg expr 
-    local (const env) $ evalArgs args exprs 
+-- evalArgs (arg : args) (expr : exprs) = do
+--     env <- evalArg arg expr 
+--     local (const env) $ evalArgs args exprs 
 
