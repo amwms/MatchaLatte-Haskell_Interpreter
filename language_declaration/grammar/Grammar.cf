@@ -71,9 +71,13 @@ Bool.      Type ::= "bool" ;
 
 Void.      Type ::= "void" ;
 
-Fun.       Type ::= "fun" "[" "(" [Type] ")" "->" Type "]" ;
+Fun.       Type ::= "fun" "[" "(" [ArgType] ")" "->" Type "]" ;
 
-separator  Type "," ;
+ValArgType. ArgType ::= Type ;
+
+RefArgType. ArgType ::= Type "@" ;
+
+separator ArgType "," ;
 
 -- Expressions ---------------------------------------------
 
