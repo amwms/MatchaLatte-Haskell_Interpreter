@@ -28,7 +28,6 @@ interpret v parser input =
             putStrLn err
             exitFailure
         Right tree -> do
-            --TODO - run type checking here and have the case below as Right case of result
             typeCheckResult <- typeCheckProgram tree
             case typeCheckResult of
                 Left err -> do
@@ -47,22 +46,20 @@ interpret v parser input =
     where
     tokens = myLexer input
     
-usage :: IO ()
-usage = do
-    putStrLn $ unlines
-        [ "usage: Call with one of the following argument combinations:"
-        , "  --help          Display this help message."
-        , "  (no arguments)  Parse stdin verbosely."
-        , "  (files)         Parse content of files verbosely."
-        , "  -s (files)      Silent mode. Parse content of files silently."
-        ]
+-- usage :: IO ()
+-- usage = do
+--     putStrLn $ unlines
+--         [ "usage: Call with one of the following argument combinations:"
+--         , "  --help          Display this help message."
+--         , "  (no arguments)  Parse stdin verbosely."
+--         , "  (files)         Parse content of files verbosely."
+--         ]
 
-main :: IO ()
-main = do
-    args <- getArgs
-    case args of
-        ["--help"] -> usage
-        []         -> getContents >>= interpret 2 pProgram
-        "-s":fs    -> mapM_ (runFile 0 pProgram) fs
-        fs         -> mapM_ (runFile 2 pProgram) fs
+-- main :: IO ()
+-- main = do
+--     args <- getArgs
+--     case args of
+--         ["--help"] -> usage
+--         []         -> getContents >>= interpret 2 pProgram
+--         fs         -> mapM_ (runFile 2 pProgram) fs
 

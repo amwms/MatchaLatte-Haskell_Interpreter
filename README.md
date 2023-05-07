@@ -1,3 +1,10 @@
+# <img src="logo.png" alt="MatchaLatte logo" style="height: 55px; width:55px;"/> MatchaLatte
+
+## Uruchamianie
+1) ```make```
+2) ```./interpreter [nazwa_pliku z programem]```
+
+Wszystkie opcje wyświetlają sie po odpaleniu z flagą ```--help```
 
 ## Tabelka cech
 
