@@ -176,12 +176,6 @@ execStmt (Print _ expr) = do
 
 evalExpr :: Expr -> InterpreterMonad Value
 evalExpr (EVar _ ident) = 
-    -- env <- ask
-    -- (store, last) <- get
-    -- let loc = Data.Map.lookup ident env
-    -- case loc of
-    --     Nothing -> throwError "Variable " ++ ident ++ " does not exist"
-    --     Just n ->  return (findWithDefault 0 n store)
     getValueFromMemory ident
 
 ----- VALUE EXPRESSIONS ----
@@ -253,14 +247,14 @@ evalExpr (EOr _ expr1 expr2) = do
         _ -> throwError $ "Or error - not a boolean value"
 
 evalExpr (EApplic pos ident exprs) = do
-    (VFun args retType block funEnv) <- evalExpr (EVar pos ident)
+    (VFun args retType block funEnv) <- getValueFromMemory ident
     outsideEnv <- ask
     -- DEBUG
     -- liftIO $ putStrLn $ "DEBUG in EApplic:"
     -- liftIO $ putStrLn $ show args
     -- liftIO $ putStrLn $ show exprs
     -- liftIO $ putStrLn $ show env
-    env' <- local (const funEnv) $ evalArgs args exprs outsideEnv
+    env' <- local (const funEnv) $ evalArgs pos args exprs outsideEnv
     env'' <- local (const env') $ execBlock block
 
     -- if retType == (Void ) then 
@@ -303,15 +297,15 @@ evalArg (RefArg _ _ ident) expr outsideEnv = do
     let newEnv = Data.Map.insert ident identLoc env
     return newEnv
 
-evalArgs :: [Arg] -> [Expr] -> MyEnv -> InterpreterMonad MyEnv
-evalArgs [] [] outsideEnv = do
+evalArgs :: BNFC'Position -> [Arg] -> [Expr] -> MyEnv -> InterpreterMonad MyEnv
+evalArgs _ [] [] outsideEnv = do
     ask
 
-evalArgs (arg : args) (expr : exprs) outsideEnv = do
+evalArgs pos (arg : args) (expr : exprs) outsideEnv = do
     env <- evalArg arg expr outsideEnv
-    local (const env) $ evalArgs args exprs outsideEnv
+    local (const env) $ evalArgs pos args exprs outsideEnv
 
-
+evalArgs pos _ _ _ = throwError $ "Application error - wrong number of arguments at " ++ show pos
 
 ---------- PROGRAM ------------
 
