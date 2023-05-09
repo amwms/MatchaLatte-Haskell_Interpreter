@@ -248,7 +248,7 @@ checkExpr (EOr pos expr1 expr2) = do
 
 checkExpr (EApplic pos ident exprs) = do
     (Fun _ argTypes retType) <- checkExpr (EVar pos ident)
-    checkArgs argTypes exprs 
+    checkArgs pos argTypes exprs 
     return retType
 
 checkArg :: ArgType -> Expr -> TypeCheckerMonad ()
@@ -269,13 +269,15 @@ checkArg (RefArgType pos argType) expr = do
     else
         throwError $ "Argument error - expected type " ++ show argType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
 
-checkArgs :: [ArgType] -> [Expr] -> TypeCheckerMonad ()
-checkArgs [] [] = do
+checkArgs :: BNFC'Position -> [ArgType] -> [Expr] -> TypeCheckerMonad ()
+checkArgs pos [] [] = do
     return ()
 
-checkArgs (arg : args) (expr : exprs) = do
+checkArgs pos (arg : args) (expr : exprs) = do
     checkArg arg expr
-    checkArgs args exprs
+    checkArgs pos args exprs
+
+checkArgs pos _ _ = throwError $ "Application error - wrong number of arguments at " ++ printPosition pos
 
 -- ---------- PROGRAM ------------
 checkProgComps :: [ProgComp] -> TypeCheckerMonad TypeEnv
