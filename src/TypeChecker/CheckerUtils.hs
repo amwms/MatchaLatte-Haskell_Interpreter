@@ -9,11 +9,12 @@ import Grammar.Abs
 import TypeChecker.CheckerTypes
 
 getVariableType :: BNFC'Position -> Ident -> TypeCheckerMonad Type
-getVariableType pos ident = do
+getVariableType pos (Ident varName) = do
     env <- ask
+    let ident = Ident varName
     case Data.Map.lookup ident env of
         Just identType -> return identType
-        Nothing -> throwError $ "Error - variable " ++  show ident ++ " in position (" ++ showPosition pos ++ ") not found"
+        Nothing -> throwError $ "Error - variable \"" ++  varName ++ "\" in position (" ++ showPosition pos ++ ") not found"
 
 doesMainFunctionExist :: TypeEnv -> Bool
 doesMainFunctionExist env = case Data.Map.lookup (Ident "main") env of

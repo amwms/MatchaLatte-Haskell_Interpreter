@@ -1,5 +1,5 @@
 module TypeChecker.TypeErrors where
-import Grammar.Abs (BNFC'Position, Type, Ident)
+import Grammar.Abs (BNFC'Position, Type, Ident(..))
 import TypeChecker.CheckerUtils
 import TypeChecker.CheckerTypes
 import Control.Monad.Except
@@ -76,8 +76,8 @@ genericExpressionTypeInPositionError pos functionName typeName valType =
    ") is not a " ++ typeName ++  " value"
 
 genericVariableTypeInPositionError :: BNFC'Position -> String -> Ident -> Type -> Type -> String
-genericVariableTypeInPositionError pos functionName ident valType expectedType =
-   functionName ++ " error  - variable " ++ show ident ++ 
-   " is of type " ++ showType valType ++
+genericVariableTypeInPositionError pos functionName (Ident ident) valType expectedType =
+   functionName ++ " error  - variable \"" ++ ident ++ 
+   "\" is of type " ++ showType valType ++
    " in position (" ++ showPosition pos ++ ")" ++
    " but expected type was " ++ showType expectedType
