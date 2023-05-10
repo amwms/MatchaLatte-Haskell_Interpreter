@@ -6,7 +6,7 @@ GHC        = ghc
 
 TYPE_CHECKER = src/TypeChecker/CheckerTypes.hs src/TypeChecker/TypeErrors.hs src/TypeChecker/CheckerUtils.hs src/TypeChecker/GrammarChecker.hs src/TypeChecker/TypeChecker.hs
 GRAMMAR_FILES = src/Grammar/Abs.hs src/Grammar/Lex.hs src/Grammar/Par.hs
-INTERPRETER_FILES = src/EvalExec.hs src/Evaluator.hs src/Interpreter.hs src/Utils.hs src/Types.hs src/Expr.hs src/Program.hs
+INTERPRETER_FILES = src/EvalExec.hs src/Evaluator.hs src/Interpreter.hs src/Utils.hs src/Types.hs src/Expr.hs src/Program.hs src/Errors.hs
 
 # List of goals not corresponding to file names.
 
