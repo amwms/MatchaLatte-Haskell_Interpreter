@@ -92,14 +92,14 @@ checkStmt (Ret pos expr) = do
         Just funRetType -> return funRetType
         Nothing -> throwError $ "Return outside of function in position " ++ show pos
 
-    if not(compareTypes functionRetType exprType) then
+    unless (compareTypes functionRetType exprType) $
         throwError $ "Return type error - expected type " ++ show functionRetType ++ " but return value was type " ++ show exprType ++ " in position (" ++ show pos ++ ")"
-    else do
-        if not(hasReturn env) then do
-            let newEnv = Data.Map.insert (Ident "return") exprType env
-            return newEnv
-        else
-            return env
+    -- else do
+    if not(hasReturn env) then do
+        let newEnv = Data.Map.insert (Ident "return") exprType env
+        return newEnv
+    else
+        return env
     -- else do
     --     retType <- getReturnType pos env
     --     if compareTypes exprType retType then
@@ -114,14 +114,14 @@ checkStmt (VRet pos) = do
         Just funRetType -> return funRetType
         Nothing -> throwError $ "Return outside of function in position " ++ show pos
 
-    if not(compareTypes functionRetType (Void pos)) then
+    unless (compareTypes functionRetType (Void pos)) $
         throwError $ "Return type error - expected type " ++ show functionRetType ++ " but return value was type Void in position (" ++ show pos ++ ")"    
-    else do
-        if not(hasReturn env) then do
-            let newEnv = Data.Map.insert (Ident "return") (Void pos) env
-            return newEnv
-        else   
-            return env
+    -- else do
+    if not(hasReturn env) then do
+        let newEnv = Data.Map.insert (Ident "return") (Void pos) env
+        return newEnv
+    else   
+        return env
     -- else do
     --     retType <- getReturnType pos env
     --     case retType of
@@ -254,20 +254,24 @@ checkExpr (EApplic pos ident exprs) = do
 checkArg :: ArgType -> Expr -> TypeCheckerMonad ()
 checkArg (ValArgType pos argType) expr = do
     exprType <- checkExpr expr
-    if compareTypes exprType argType then
-        return ()
-    else
+    unless (compareTypes exprType argType) $
         throwError $ "Argument error - expected type " ++ show argType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
+    -- if compareTypes exprType argType then
+    --     return ()
+    -- else
+    --     throwError $ "Argument error - expected type " ++ show argType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
 
 checkArg (RefArgType pos argType) expr = do
     outsideIdent <- case expr of
         EVar _ id -> return id
         _ -> throwError $ "Reference error - argument is not a variable but regular expression in position (" ++ show pos ++ ")"
     exprType <- checkExpr expr
-    if compareTypes exprType argType then
-        return ()
-    else
+    unless (compareTypes exprType argType) $
         throwError $ "Argument error - expected type " ++ show argType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
+    -- if compareTypes exprType argType then
+    --     return ()
+    -- else
+    --     throwError $ "Argument error - expected type " ++ show argType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
 
 checkArgs :: BNFC'Position -> [ArgType] -> [Expr] -> TypeCheckerMonad ()
 checkArgs pos [] [] = do
@@ -277,7 +281,7 @@ checkArgs pos (arg : args) (expr : exprs) = do
     checkArg arg expr
     checkArgs pos args exprs
 
-checkArgs pos _ _ = throwError $ "Application error - wrong number of arguments at " ++ printPosition pos
+checkArgs pos _ _ = throwError $ "Application error - wrong number of arguments at " ++ showPosition pos
 
 -- ---------- PROGRAM ------------
 checkProgComps :: [ProgComp] -> TypeCheckerMonad TypeEnv
@@ -305,7 +309,8 @@ checkProgComp (FunDecl pos retType ident args block) = do
     let newEnv = Data.Map.insert ident (Fun pos argTypes retType) env
     return newEnv
 
-checkProgComp (VarDecl _ varType items) = do
+checkProgComp (VarDecl pos varType items) = do
+    catchVoidVariable pos varType
     evalItems items varType
 
 evalItems :: [Item] -> Type -> TypeCheckerMonad TypeEnv
@@ -336,7 +341,7 @@ evalItem (Init pos ident expr) varType = do
 
 checkFunction :: BNFC'Position -> [Arg] -> Type -> Block -> TypeCheckerMonad ()
 checkFunction pos args retType block = do
-    env' <- evalArgs args 
+    env' <- evalArgs args
     envWithReturn <- local (const env') $ addReturn retType
     env'' <- local (const envWithReturn) $ checkBlock block
     if hasReturn env'' then do
@@ -346,7 +351,7 @@ checkFunction pos args retType block = do
         --     return ()
         -- else
         --     throwError $ "Return type error - expected type " ++ show retType ++ " but return value was type " ++ show evalRetType ++ " in position (" ++ show pos ++ ")"
-    else 
+    else
         case retType of
             (Void _) -> return ()
             _ -> throwError $ "No return value for function in position" ++ show pos ++ " but expected type " ++ show retType
@@ -360,11 +365,13 @@ addReturn retType = do
 ----- APPLICATION -------
 evalArg :: Arg -> TypeCheckerMonad TypeEnv
 evalArg (ValArg pos argType ident) = do
+    catchVoidVariable pos argType
     env <- ask
     let newEnv = Data.Map.insert ident argType env
     return newEnv
 
 evalArg (RefArg pos argType ident) = do
+    catchVoidVariable pos argType
     env <- ask
     let newEnv = Data.Map.insert ident argType env
     return newEnv
@@ -375,5 +382,5 @@ evalArgs [] = do
 
 evalArgs (arg : args) = do
     env <- evalArg arg
-    local (const env) $ evalArgs args 
+    local (const env) $ evalArgs args
 

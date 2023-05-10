@@ -3,6 +3,7 @@ module TypeChecker.CheckerUtils where
 import Data.Map
 import Control.Monad.Reader      
 import Control.Monad.Except
+import Control.Monad      ( when )
 
 import Grammar.Abs
 import TypeChecker.CheckerTypes
@@ -43,3 +44,24 @@ compareTypes type1 type2 = do
         (Fun _ _ _, Fun _ _ _) -> True
         (Void _, Void _) -> True
         _ -> False
+
+showType :: Type -> String
+showType (Int _) = "int"
+showType (Str _) = "string"
+showType (Bool _) = "bool"
+showType (Fun _ argTypes retType) = "function" ++ "(" ++ showArgTypes argTypes ++ ")" ++ " -> " ++ showType retType
+showType (Void _) = "void"
+
+showArgTypes :: [ArgType] -> String
+showArgTypes [] = ""
+showArgTypes ((ValArgType _ argType):argTypes) = showType argType ++ ", " ++ showArgTypes argTypes
+showArgTypes ((RefArgType _ argType):argTypes) = "@" ++ showType argType ++ ", " ++ showArgTypes argTypes
+
+showPosition :: BNFC'Position -> String
+showPosition (Just (line, column)) = "line " ++ show line ++ ", column " ++ show column
+showPosition Nothing = "unknown position"
+
+catchVoidVariable :: BNFC'Position -> Type -> TypeCheckerMonad ()
+catchVoidVariable pos varType = do
+    Control.Monad.when (compareTypes varType (Void pos)) $
+        throwError $ "Variable type error in position " ++ showPosition pos ++ " - variable cannot be of type void"
