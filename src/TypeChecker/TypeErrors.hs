@@ -19,10 +19,6 @@ catchWrongReturnTypeError pos expectedType actualType =
         " but return value was type " ++ showType actualType ++ 
         " in position (" ++ showPosition pos ++ ")"
 
-    -- unless (compareTypes expectedType actualType) $
-    --     throwError $ "Return error - expected type " ++ showType expectedType ++
-    --     " but got " ++ showType actualType ++ " in position (" ++ showPosition pos ++ ")"
-
 noReturnValueForNonVoidFunctionError :: BNFC'Position -> Type -> String
 noReturnValueForNonVoidFunctionError pos retType =
     "No return value for non-void function in position" ++ showPosition pos ++
