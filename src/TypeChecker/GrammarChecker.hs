@@ -124,7 +124,7 @@ checkStmt (Print pos expr) = do
         Int _ -> ask
         Bool _ -> ask
         Str _ -> ask
-        Void _ -> ask --TODO - check if this is correct
+        Fun _ _ _ -> ask
         _ -> throwError $ genericExpressionTypeInPositionError pos "Print" "printable" valType
 
 

@@ -13,7 +13,7 @@ getVariableType pos ident = do
     env <- ask
     case Data.Map.lookup ident env of
         Just identType -> return identType
-        Nothing -> throwError $ show ident ++ " in position " ++ show pos ++ " not found"
+        Nothing -> throwError $ "Error - variable " ++  show ident ++ " in position (" ++ showPosition pos ++ ") not found"
 
 doesMainFunctionExist :: TypeEnv -> Bool
 doesMainFunctionExist env = case Data.Map.lookup (Ident "main") env of
