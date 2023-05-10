@@ -4,6 +4,7 @@ import Prelude
 import System.Environment ( getArgs )
 import System.Exit        ( exitFailure )
 import Control.Monad      ( when )
+import System.IO (hPutStrLn, stderr)
 
 import Grammar.Abs ( Program )
 import Grammar.Lex ( Token )
@@ -24,42 +25,25 @@ interpret :: Verbosity -> ParseFun Program -> String -> IO ()
 interpret v parser input =
     case parser tokens of
         Left err -> do
-            putStrLn "Parse Failed..."
-            putStrLn err
+            hPutStrLn stderr "Parse Failed..."
+            hPutStrLn stderr err
             exitFailure
         Right tree -> do
             typeCheckResult <- typeCheckProgram tree
             case typeCheckResult of
                 Left err -> do
-                    putStrLn "Type Error..."
-                    putStrLn err
+                    hPutStrLn stderr "Error..."
+                    hPutStrLn stderr err
                     exitFailure
                 Right _ -> do
                     runProgramResult <- runProgram tree
                     case runProgramResult of
                         Left err -> do
-                            putStrLn "Runtime Error..."
-                            putStrLn err
+                            hPutStrLn stderr "Runtime Error..."
+                            hPutStrLn stderr err
                             exitFailure
                         Right (code, store) -> do
                             putStrLn $ "Program successful with exit code " ++ show code
     where
     tokens = myLexer input
-    
--- usage :: IO ()
--- usage = do
---     putStrLn $ unlines
---         [ "usage: Call with one of the following argument combinations:"
---         , "  --help          Display this help message."
---         , "  (no arguments)  Parse stdin verbosely."
---         , "  (files)         Parse content of files verbosely."
---         ]
-
--- main :: IO ()
--- main = do
---     args <- getArgs
---     case args of
---         ["--help"] -> usage
---         []         -> getContents >>= interpret 2 pProgram
---         fs         -> mapM_ (runFile 2 pProgram) fs
 
