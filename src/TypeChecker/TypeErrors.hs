@@ -19,16 +19,16 @@ catchWrongReturnTypeError pos expectedType actualType =
 
 noReturnValueForNonVoidFunctionError :: BNFC'Position -> Type -> String
 noReturnValueForNonVoidFunctionError pos retType =
-    "No return value for non-void function in position" ++ showPosition pos ++
-    " but expected type " ++ showType retType
+    "No return value for non-void function in position (" ++ showPosition pos ++
+    ") but expected type " ++ showType retType
 
 returnOutsideOfFunctionError :: BNFC'Position -> String
 returnOutsideOfFunctionError pos =
-    "Return outside of function in position " ++ showPosition pos
+    "Return outside of function in position (" ++ showPosition pos ++ ")"
 
 mainFunctionTypeError :: BNFC'Position -> Type -> String
 mainFunctionTypeError pos retType =
-    "Main function must return an integer value in position " ++ showPosition pos
+    "Main function must return an integer value in position (" ++ showPosition pos ++ ")"
 
 noMainFunctionFoundError :: String
 noMainFunctionFoundError =
@@ -36,7 +36,7 @@ noMainFunctionFoundError =
 
 wrongNumberOfArgumentsInApplicationError :: BNFC'Position -> String
 wrongNumberOfArgumentsInApplicationError pos =
-    "Application error - wrong number of arguments in " ++ showPosition pos
+    "Application error - wrong number of arguments in position (" ++ showPosition pos ++ ")"
 
 catchWrongArgumentTypeError :: BNFC'Position -> Type -> Type -> TypeCheckerMonad ()
 catchWrongArgumentTypeError pos expectedType actualType = 
@@ -72,12 +72,12 @@ genericExpressionTypeInPositionError :: BNFC'Position -> String -> String -> Typ
 genericExpressionTypeInPositionError pos functionName typeName valType =
    functionName ++ " error  - expression of type " ++
    showType valType ++
-   " in position " ++ showPosition pos ++ 
-   " is not a " ++ typeName ++  " value"
+   " in position (" ++ showPosition pos ++ 
+   ") is not a " ++ typeName ++  " value"
 
 genericVariableTypeInPositionError :: BNFC'Position -> String -> Ident -> Type -> Type -> String
 genericVariableTypeInPositionError pos functionName ident valType expectedType =
    functionName ++ " error  - variable " ++ show ident ++ 
    " is of type " ++ showType valType ++
-   " in position " ++ showPosition pos ++ 
+   " in position (" ++ showPosition pos ++ ")" ++
    " but expected type was " ++ showType expectedType
