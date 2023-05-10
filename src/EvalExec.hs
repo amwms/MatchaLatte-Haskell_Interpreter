@@ -202,13 +202,15 @@ evalExpr (ENeg _ expr) = do
         _ -> throwError $ "Negation error - not an integer value"
 
 ------- MUL -------
--- TODO - division by 0
-evalExpr (EMul _ expr1 mulOp expr2) = do
+evalExpr (EMul pos expr1 mulOp expr2) = do
     val1 <- evalExpr expr1
     val2 <- evalExpr expr2
-    case (val1, val2) of
-        (VInt i1, VInt i2) -> return $ VInt $ evalMulOp mulOp i1 i2
-        _ -> throwError $ "Multiplication error - not an integer value"
+    
+    case (mulOp, val2) of
+        (Div _, VInt 0) -> throwError $ "Division error - attempt to divide by 0 in position " ++ show pos
+        _ -> case (val1, val2) of
+                (VInt i1, VInt i2) -> return $ VInt $ evalMulOp mulOp i1 i2
+                _ -> throwError $ "Multiplication error - not an integer value"
 
 ------- ADD -------
 evalExpr (EAdd _ expr1 addOp expr2) = do
@@ -220,7 +222,6 @@ evalExpr (EAdd _ expr1 addOp expr2) = do
         _ -> throwError $ "Addition error - not an integer or string value"
 
 ------- REL -------
--- TODO can compare bool with == but not with <, <=, >=, > 
 evalExpr (ERel _ expr1 relOp expr2) = do
     val1 <- evalExpr expr1
     val2 <- evalExpr expr2
@@ -341,7 +342,6 @@ execProgram (Program pos components) = do
         _ -> throwError "Main function must return an integer value"
     -- return 0
 
--- TODO
 execProgComp :: ProgComp -> InterpreterMonad MyEnv
 execProgComp (FunDecl _ retType ident args block) = do
     env <- ask
@@ -357,7 +357,7 @@ execProgComp (VarDecl _ varType items) = do
         Int _ -> local (const env) $ evalItems items $ VInt 0
         Str _ -> local (const env) $ evalItems items $ VString ""
         Bool _ -> local (const env) $ evalItems items $ VBool False
-        Void _ -> local (const env) $ evalItems items VVoid
+        Void _ -> local (const env) $ evalItems items VVoid  --TODO
         (Fun x argTypes retType) -> local (const env) $ evalItems items $ VFun [] retType (Block x [Empty x]) env
 
 evalItems :: [Item] -> Value -> InterpreterMonad MyEnv
