@@ -3,8 +3,6 @@ import Grammar.Abs (BNFC'Position, Type, Ident)
 import TypeChecker.CheckerUtils
 import TypeChecker.CheckerTypes
 import Control.Monad.Except
-import Data.Functor.Contravariant (comparisonEquivalence)
-import GHC.ExecutionStack (Location(functionName))
 
 initializationTypesError :: BNFC'Position -> Type -> Type -> String
 initializationTypesError pos varType exprType =
@@ -44,7 +42,7 @@ catchWrongArgumentTypeError :: BNFC'Position -> Type -> Type -> TypeCheckerMonad
 catchWrongArgumentTypeError pos expectedType actualType = 
     unless (compareTypes expectedType actualType) $
         throwError $ "Argument error - expected type " ++ showType expectedType ++
-        " but got " ++ show actualType ++ " in position (" ++ showPosition pos ++ ")"
+        " but got " ++ showType actualType ++ " in position (" ++ showPosition pos ++ ")"
 
 referenceAssignedNonReferenceTypeError :: BNFC'Position -> String
 referenceAssignedNonReferenceTypeError pos =

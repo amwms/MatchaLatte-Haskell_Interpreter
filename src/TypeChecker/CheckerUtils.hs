@@ -15,6 +15,11 @@ getVariableType pos ident = do
         Just identType -> return identType
         Nothing -> throwError $ show ident ++ " in position " ++ show pos ++ " not found"
 
+doesMainFunctionExist :: TypeEnv -> Bool
+doesMainFunctionExist env = case Data.Map.lookup (Ident "main") env of
+    Just (Fun _ _ (Int _)) -> True
+    _ -> False
+
 hasReturn :: TypeEnv -> Bool
 hasReturn env = case Data.Map.lookup (Ident "return") env of
     Just _ -> True
