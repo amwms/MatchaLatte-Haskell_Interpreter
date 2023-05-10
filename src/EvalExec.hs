@@ -10,22 +10,12 @@ import Expr
 import Program
 import Types
 import Utils
+import Errors (divisionByZeroError)
+import TypeChecker.CheckerUtils (showPosition)
 
------ STMTS -----
--- data Block a = Block a [Stmt' a]
--- data Stmt a
---     = Empty a
---     | StmtBlock a (Block a)
---     | StmtComp a (ProgComp a)
---     | Assign a Ident (Expr a)
---     | Incr a Ident
---     | Decr a Ident
---     | StmtExp a (Expr a)
---     | Ret a (Expr a)
---     | VRet a
---     | If a (Expr a) (Block a)
---     | IfElse a (Expr a) (Block a) (Block a)
---     | While a (Expr a) (Block a)
+---------------------------------
+---------- STATEMENTS -----------
+---------------------------------
 
 execStmts :: [Stmt] -> InterpreterMonad MyEnv
 execStmts [] = do
@@ -33,24 +23,22 @@ execStmts [] = do
 
 execStmts (stmt : stmts) = do
     env' <- execStmt stmt
-    
     if hasReturn env' then
         return env'
     else
         local (const env') (execStmts stmts)
 
-execBlock :: Block -> InterpreterMonad MyEnv -- Todo: Maybe change to MyEnv
+execBlock :: Block -> InterpreterMonad MyEnv
 execBlock (Block _ stmts) = do
     env <- ask
     env' <- local (const env) $ execStmts stmts
-    -- DEBUG
-    -- liftIO(putStrLn $ "AFTER block: " ++ show env')
     if hasReturn env' then do
         val <- local (const env') $ getValueFromMemory (Ident "return")
-        -- liftIO(putStrLn $ "RETURN VALUE: " ++ show val)
         (store, last) <- get
+
         let newEnv = Data.Map.insert (Ident "return") last env
         let newStore = (Data.Map.insert last val store, last + 1)
+
         put newStore
         return newEnv
     else
@@ -85,11 +73,10 @@ execStmt (Incr pos ident) = do
 
 execStmt (Decr pos ident) = do
     env <- ask
-    (store, last) <- get
     val <- getValueFromMemory ident
     case val of
         VInt intVal -> execStmt (Assign pos ident (EInt pos (intVal - 1)))
-        _ -> throwError "Incr error - value is not an integer"
+        _ -> throwError "Decr error - value is not an integer"
 
 execStmt (StmtExp _ expr) = do
     evalExpr expr
@@ -102,6 +89,7 @@ execStmt (Ret _ expr) = do
         (store, last) <- get
         let newEnv = Data.Map.insert (Ident "return") last env
         let newStore = (Data.Map.insert last value store, last + 1)
+        
         put newStore
         return newEnv
     else
@@ -113,6 +101,7 @@ execStmt (VRet _) = do
         (store, last) <- get
         let newEnv = Data.Map.insert (Ident "return") last env
         let newStore = (Data.Map.insert last VVoid store, last + 1)
+
         put newStore
         return newEnv
     else
@@ -123,14 +112,14 @@ execStmt (If _ expr block) = do
     case val of
         VBool True -> execBlock block
         VBool False -> ask
-        _ -> throwError $ "If error - not a boolean value"
+        _ -> throwError "If error - not a boolean value"
 
 execStmt (IfElse _ expr block1 block2) = do
     val <- evalExpr expr
     case val of
         VBool True -> execBlock block1
         VBool False -> execBlock block2
-        _ -> throwError $ "If error - not a boolean value"
+        _ -> throwError "If error - not a boolean value"
 
 execStmt while@(While _ expr block) = do
     val <- evalExpr expr
@@ -142,43 +131,22 @@ execStmt while@(While _ expr block) = do
             else
                 local (const env') $ execStmt while
         VBool False -> ask
-        _ -> throwError $ "While error - not a boolean value"
+        _ -> throwError "While error - not a boolean value"
 
 execStmt (Print _ expr) = do
     val <- evalExpr expr
-    case val of
-        VInt intVal -> liftIO $ putStrLn $ show intVal
-        VBool boolVal -> liftIO $ putStrLn $ show boolVal
-        VString strVal -> liftIO $ putStrLn $ show strVal
-        VVoid -> liftIO $ putStrLn "()"
-        _ -> throwError "Print error - not a printable value"
-
+    liftIO $ putStrLn $ showValue val
     ask
 
 
------- EXPRESSIONS -----
-
--- data Expr a
---     = EVar a Ident
---     | EInt a Integer
---     | ETrue a
---     | EFalse a
---     | EString a String
---     | ELambda a [Arg a] (Type a) (Block a)
---     | EApplic a Ident [Expr a]
---     | ENeg a (Expr a)
---     | ENot a (Expr a)
---     | EMul a (Expr a) (MulOp a) (Expr a)
---     | EAdd a (Expr a) (AddOp a) (Expr a)
---     | ERel a (Expr a) (RelOp a) (Expr a)
---     | EAnd a (Expr a) (Expr a)
---     | EOr a (Expr a) (Expr a)
+---------------------------------
+----------- EXPRESSIONS ---------
+---------------------------------
 
 evalExpr :: Expr -> InterpreterMonad Value
 evalExpr (EVar _ ident) = 
     getValueFromMemory ident
 
------ VALUE EXPRESSIONS ----
 evalExpr (EInt _ int) = return $ VInt int
 evalExpr (ETrue _) = return $ VBool True
 evalExpr (EFalse _) = return $ VBool False
@@ -187,41 +155,35 @@ evalExpr (ELambda _ args retType block) = do
     env <- ask
     return $ VFun args retType block env
 
------- NOT -------
 evalExpr (ENot _ expr) = do
     val <- evalExpr expr
     case val of
         VBool b -> return $ VBool $ not b
-        _ -> throwError $ "Not error - not a boolean value"
+        _ -> throwError "Not error - not a boolean value"
 
-------- NEG -------
 evalExpr (ENeg _ expr) = do
     val <- evalExpr expr
     case val of
         VInt i -> return $ VInt $ -i
         _ -> throwError $ "Negation error - not an integer value"
 
-------- MUL -------
 evalExpr (EMul pos expr1 mulOp expr2) = do
     val1 <- evalExpr expr1
     val2 <- evalExpr expr2
-    
     case (mulOp, val2) of
-        (Div _, VInt 0) -> throwError $ "Division error - attempt to divide by 0 in position " ++ show pos
+        (Div _, VInt 0) -> throwError $ divisionByZeroError pos
         _ -> case (val1, val2) of
                 (VInt i1, VInt i2) -> return $ VInt $ evalMulOp mulOp i1 i2
                 _ -> throwError $ "Multiplication error - not an integer value"
 
-------- ADD -------
 evalExpr (EAdd _ expr1 addOp expr2) = do
     val1 <- evalExpr expr1
     val2 <- evalExpr expr2
     case (val1, val2, addOp) of
         (VInt i1, VInt i2, _) -> return $ VInt $ evalAddOp addOp i1 i2
         (VString s1, VString s2, Plus _) -> return $ VString $ s1 ++ s2
-        _ -> throwError $ "Addition error - not an integer or string value"
+        _ -> throwError "Addition error - not an integer or string value"
 
-------- REL -------
 evalExpr (ERel _ expr1 relOp expr2) = do
     val1 <- evalExpr expr1
     val2 <- evalExpr expr2
@@ -229,46 +191,29 @@ evalExpr (ERel _ expr1 relOp expr2) = do
         (VInt i1, VInt i2, _) -> return $ VBool $ evalRelOp relOp i1 i2
         (VBool b1, VBool b2, EQU _) -> return $ VBool $ evalRelOp relOp b1 b2
         (VString s1, VString s2, _) -> return $ VBool $ evalRelOp relOp s1 s2
-        _ -> throwError $ "Comparison error - not an integer, boolean or string value"
+        _ -> throwError "Comparison error - not an integer, boolean or string value"
 
-------- AND -------
 evalExpr (EAnd _ expr1 expr2) = do
     val1 <- evalExpr expr1
     val2 <- evalExpr expr2
     case (val1, val2) of
         (VBool b1, VBool b2) -> return $ VBool $ b1 && b2
-        _ -> throwError $ "And error -not a boolean value"
+        _ -> throwError "And error -not a boolean value"
 
-------- OR -------
 evalExpr (EOr _ expr1 expr2) = do
     val1 <- evalExpr expr1
     val2 <- evalExpr expr2
     case (val1, val2) of
         (VBool b1, VBool b2) -> return $ VBool $ b1 || b2
-        _ -> throwError $ "Or error - not a boolean value"
+        _ -> throwError "Or error - not a boolean value"
 
+------- APPLICATION -------
 evalExpr (EApplic pos ident exprs) = do
     (VFun args retType block funEnv) <- getValueFromMemory ident
     outsideEnv <- ask
-    -- DEBUG
-    -- liftIO $ putStrLn $ "DEBUG in EApplic:"
-    -- liftIO $ putStrLn $ show args
-    -- liftIO $ putStrLn $ show exprs
-    -- liftIO $ putStrLn $ show env
     env' <- local (const funEnv) $ evalArgs pos args exprs outsideEnv
     env'' <- local (const env') $ execBlock block
 
-    -- if retType == (Void ) then 
-    --     return VVoid
-    -- else 
-    --     getReturnValue env''
-    --DEBUG
-    -- liftIO $ putStrLn $ "DEBUG in APLICATION:"
-    -- liftIO $ putStrLn $ "env: " ++ show env''
-    -- liftIO $ putStrLn $ "ret: " ++ show retType
-
-
-    -- TODO - if return value doesn't exist for return type =/= void throw error
     if hasReturn env'' then 
         getReturnValue env''
     else 
@@ -276,13 +221,12 @@ evalExpr (EApplic pos ident exprs) = do
             (Void _) -> return VVoid
             _ -> throwError $ "No return value for function " ++ show ident
         
-
-------- APPLICATION -------
 evalArg :: Arg -> Expr -> MyEnv -> InterpreterMonad MyEnv
 evalArg (ValArg _ _ ident) expr outsideEnv = do
     val <- local (const outsideEnv) $ evalExpr expr
     env <- ask
     (store, loc) <- get
+
     let newEnv = Data.Map.insert ident loc env
     let newStore = (Data.Map.insert loc val store, loc + 1)
     put newStore
@@ -292,6 +236,7 @@ evalArg (RefArg _ _ ident) expr outsideEnv = do
     outsideIdent <- case expr of
         EVar _ ident -> return ident
         _ -> throwError "Reference error - not a variable"
+
     env <- ask
     (store, loc) <- get
     identLoc <- local (const outsideEnv) $ getVariableLocation outsideIdent
@@ -306,9 +251,23 @@ evalArgs pos (arg : args) (expr : exprs) outsideEnv = do
     env <- evalArg arg expr outsideEnv
     local (const env) $ evalArgs pos args exprs outsideEnv
 
-evalArgs pos _ _ _ = throwError $ "Application error - wrong number of arguments at " ++ show pos
+evalArgs pos _ _ _ = throwError $ "Application error - wrong number of arguments at " ++ showPosition pos
 
----------- PROGRAM ------------
+
+---------------------------------
+------------ PROGRAM ------------
+---------------------------------
+
+execProgram :: Program -> InterpreterMonad Integer
+execProgram (Program pos components) = do
+    env <- ask
+    env' <- local (const env) $ execProgComps components
+    (store, _) <- get
+
+    intVal <- local (const env') $ evalExpr (EApplic pos (Ident "main") [])
+    case intVal of
+        VInt i -> return i
+        _ -> throwError "Main function must return an integer value"
 
 execProgComps :: [ProgComp] -> InterpreterMonad MyEnv
 execProgComps [] = do
@@ -316,31 +275,9 @@ execProgComps [] = do
 
 execProgComps (comp : comps) = do
     env <- ask
-    (store, last) <- get
+    (store, _) <- get
     env' <- local (const env) $ execProgComp comp
     local (const env') $ execProgComps comps
-
-
-execProgram :: Program -> InterpreterMonad Integer
-execProgram (Program pos components) = do
-    env <- ask
-    env' <- local (const env) $ execProgComps components
-    (store, last) <- get
-
-    -- DEBUG
-    -- liftIO (putStrLn $ "ENV :  " ++ show env')
-    -- liftIO (putStrLn $ "STORE : " ++ show store)
-
-
-    -- TODO -  run all porgram components and then run Expr Application of main
-    -- and return that value
-    loc <- local (const env') $ getVariableLocation (Ident "main")
-    
-    intVal <- local (const env') $ evalExpr (EApplic pos (Ident "main") [])
-    case intVal of
-        VInt i -> return i
-        _ -> throwError "Main function must return an integer value"
-    -- return 0
 
 execProgComp :: ProgComp -> InterpreterMonad MyEnv
 execProgComp (FunDecl _ retType ident args block) = do
@@ -357,7 +294,7 @@ execProgComp (VarDecl _ varType items) = do
         Int _ -> local (const env) $ evalItems items $ VInt 0
         Str _ -> local (const env) $ evalItems items $ VString ""
         Bool _ -> local (const env) $ evalItems items $ VBool False
-        Void _ -> local (const env) $ evalItems items VVoid  --TODO
+        Void _ -> local (const env) $ evalItems items VVoid 
         (Fun x argTypes retType) -> local (const env) $ evalItems items $ VFun [] retType (Block x [Empty x]) env
 
 evalItems :: [Item] -> Value -> InterpreterMonad MyEnv
@@ -366,7 +303,7 @@ evalItems [] _ = do
 
 evalItems (item : items) defaultValue = do
     env <- ask
-    (store, loc) <- get
+    (store, _) <- get
     env' <- local (const env) $ evalItem item defaultValue
     local (const env') $ evalItems items defaultValue
 
