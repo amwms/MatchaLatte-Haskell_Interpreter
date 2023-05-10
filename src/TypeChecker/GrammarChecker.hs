@@ -8,6 +8,7 @@ import Control.Monad.Except
 import Expr
 import TypeChecker.CheckerTypes
 import TypeChecker.CheckerUtils
+import TypeChecker.TypeErrors
 
 ----- STMTS -----
 -- data Block a = Block a [Stmt' a]
@@ -62,7 +63,7 @@ checkStmt (Assign pos ident expr) = do
     if compareTypes varType exprType then
         return env
     else
-        throwError $ "Assign error (" ++ show pos ++ ") - variable " ++ show ident ++ " is of type " ++ show varType ++ " but expression is of type " ++ show exprType
+        throwError $ genericVariableTypeInPositionError pos "Assign" ident varType exprType
 
 checkStmt (Incr pos ident) = do
     env <- ask
@@ -70,7 +71,7 @@ checkStmt (Incr pos ident) = do
     valType <- getVariableType pos ident
     case valType of
         Int _ -> return env
-        _ -> throwError $ "Increment error (" ++ show pos ++ ") - variable " ++ show ident ++ " is of type " ++ show  valType ++ " and not an integer"
+        _ -> throwError $ genericVariableTypeInPositionError pos "Increment" ident valType (Int Nothing)
 
 checkStmt (Decr pos ident) = do
     env <- ask
@@ -78,7 +79,7 @@ checkStmt (Decr pos ident) = do
     valType <- getVariableType pos ident
     case valType of
         Int _ -> return env
-        _ -> throwError $ "Decrement error (" ++ show pos ++ ") - variable " ++ show ident ++ " is of type " ++ show  valType ++ " and not an integer"
+        _ -> throwError $ genericVariableTypeInPositionError pos "Decrement" ident valType (Int Nothing)
 
 checkStmt (StmtExp _ expr) = do
     checkExpr expr
@@ -90,10 +91,11 @@ checkStmt (Ret pos expr) = do
 
     functionRetType <- case Data.Map.lookup (Ident "@return") env of
         Just funRetType -> return funRetType
-        Nothing -> throwError $ "Return outside of function in position " ++ show pos
+        Nothing -> throwError $ returnOutsideOfFunctionError pos
 
-    unless (compareTypes functionRetType exprType) $
-        throwError $ "Return type error - expected type " ++ show functionRetType ++ " but return value was type " ++ show exprType ++ " in position (" ++ show pos ++ ")"
+    catchWrongReturnTypeError pos functionRetType exprType
+    -- unless (compareTypes functionRetType exprType) $
+    --     throwError $ "Return type error - expected type " ++ show functionRetType ++ " but return value was type " ++ show exprType ++ " in position (" ++ show pos ++ ")"
     -- else do
     if not(hasReturn env) then do
         let newEnv = Data.Map.insert (Ident "return") exprType env
@@ -112,10 +114,11 @@ checkStmt (VRet pos) = do
     
     functionRetType <- case Data.Map.lookup (Ident "@return") env of
         Just funRetType -> return funRetType
-        Nothing -> throwError $ "Return outside of function in position " ++ show pos
+        Nothing -> throwError $ returnOutsideOfFunctionError pos
 
-    unless (compareTypes functionRetType (Void pos)) $
-        throwError $ "Return type error - expected type " ++ show functionRetType ++ " but return value was type Void in position (" ++ show pos ++ ")"    
+    catchWrongReturnTypeError pos functionRetType (Void pos)
+    -- unless (compareTypes functionRetType (Void pos)) $
+    --     throwError $ "Return type error - expected type " ++ show functionRetType ++ " but return value was type Void in position (" ++ show pos ++ ")"    
     -- else do
     if not(hasReturn env) then do
         let newEnv = Data.Map.insert (Ident "return") (Void pos) env
@@ -132,19 +135,19 @@ checkStmt (If pos expr block) = do
     valType <- checkExpr expr
     case valType of
         Bool _ -> checkBlock block
-        _ -> throwError $ "If error - expression in pos " ++ show pos ++ " is not a boolean value"
+        _ -> throwError $ genericExpressionTypeInPositionError pos "If" "boolean" valType
 
 checkStmt (IfElse pos expr block1 block2) = do
     valType <- checkExpr expr
     case valType of
         Bool _ -> checkBlock block1 >> checkBlock block2
-        _ -> throwError $ "If error - expression in pos " ++ show pos ++ " is not a boolean value"
+        _ -> throwError $ genericExpressionTypeInPositionError pos "If-else" "boolean" valType
 
 checkStmt (While pos expr block) = do
-    val <- checkExpr expr
-    case val of
+    valType <- checkExpr expr
+    case valType of
         Bool _ -> checkBlock block
-        _ -> throwError $ "While error - expression in pos " ++ show pos ++ " is not a boolean value"
+        _ -> throwError $ genericExpressionTypeInPositionError pos "While" "boolean" valType
 
 checkStmt (Print pos expr) = do
     valType <- checkExpr expr
@@ -153,7 +156,7 @@ checkStmt (Print pos expr) = do
         Bool _ -> ask
         Str _ -> ask
         Void _ -> ask
-        _ -> throwError $ "Print error - expression in pos " ++ show pos ++ " is not a printable value"
+        _ -> throwError $ genericExpressionTypeInPositionError pos "Print" "printable" valType
 
 
 ------ EXPRESSIONS -----
@@ -194,14 +197,14 @@ checkExpr (ENot pos expr) = do
     valType <- checkExpr expr
     case (valType) of
         (Bool _) -> return $ Bool pos
-        _ -> throwError $ "Not error in position (" ++ show pos ++ ") - " ++ show valType ++ " is not an boolean value"
+        _ -> throwError $ genericExpressionTypeInPositionError pos "Not" "integer" valType
 
 ------- NEG -------
 checkExpr (ENeg pos expr) = do
     valType <- checkExpr expr
     case (valType) of
         (Int _) -> return $ Int pos
-        _ -> throwError $ "Negation error in position (" ++ show pos ++ ") - " ++ show valType ++ " is not an integer value"
+        _ -> throwError $ genericExpressionTypeInPositionError pos "Negation" "integer" valType
 
 ------- MUL -------
 checkExpr (EMul pos expr1 mulOp expr2) = do
@@ -209,7 +212,7 @@ checkExpr (EMul pos expr1 mulOp expr2) = do
     valType2 <- checkExpr expr2
     case (valType1, valType2) of
         (Int _, Int _) -> return $ Int pos
-        _ -> throwError $ "Multiplication error - cannot multiply/divide types " ++ show valType1 ++ " and " ++ show valType2 ++ " in position (" ++ show pos ++ ")"
+        _ -> throwError $ mathOperationTypeError pos "multiply/divide" valType1 valType2
 
 ------- ADD -------
 checkExpr (EAdd pos expr1 addOp expr2) = do
@@ -218,7 +221,7 @@ checkExpr (EAdd pos expr1 addOp expr2) = do
     case (valType1, valType2, addOp) of
         (Int _, Int _, _) -> return $ Int pos
         (Str _, Str _, Plus _) -> return $ Str pos
-        _ -> throwError $ "Addition error - cannot add/subtract types " ++ show valType1 ++ " and " ++ show valType2 ++ " in position (" ++ show pos ++ ")"
+        _ -> throwError $ mathOperationTypeError pos "add/subtract" valType1 valType2
 
 ------- REL ------- 
 checkExpr (ERel pos expr1 relOp expr2) = do
@@ -228,7 +231,7 @@ checkExpr (ERel pos expr1 relOp expr2) = do
         (Int _, Int _, _) -> return $ Bool pos
         (Bool _, Bool _, EQU _) -> return $ Bool pos
         (Str _, Str _, _) -> return $ Bool pos
-        _ -> throwError $ "Comparison error in position (" ++ show pos ++ ") - error with types " ++ show valType1 ++ " and " ++ show valType2
+        _ -> throwError $ comparisonTypesError pos valType1 valType2
 
 ------- AND -------
 checkExpr (EAnd pos expr1 expr2) = do
@@ -236,7 +239,7 @@ checkExpr (EAnd pos expr1 expr2) = do
     valType2 <- checkExpr expr2
     case (valType1, valType2) of
         (Bool _, Bool _) -> return $ Bool pos
-        _ -> throwError $ "And error in position (" ++ show pos ++ ") - " ++ show valType1 ++ " and " ++ show valType2 ++ " are not both boolean values"
+        _ -> throwError $ boolOperationTypeError pos "AND" valType1 valType2
 
 ------- OR -------
 checkExpr (EOr pos expr1 expr2) = do
@@ -244,7 +247,7 @@ checkExpr (EOr pos expr1 expr2) = do
     valType2 <- checkExpr expr2
     case (valType1, valType2) of
         (Bool _, Bool _) -> return $ Bool pos
-        _ -> throwError $ "Or error in position (" ++ show pos ++ ") - " ++ show valType1 ++ " and " ++ show valType2 ++ " are not both boolean values"
+        _ -> throwError $ boolOperationTypeError pos "OR" valType1 valType2
 
 checkExpr (EApplic pos ident exprs) = do
     (Fun _ argTypes retType) <- checkExpr (EVar pos ident)
@@ -254,8 +257,9 @@ checkExpr (EApplic pos ident exprs) = do
 checkArg :: ArgType -> Expr -> TypeCheckerMonad ()
 checkArg (ValArgType pos argType) expr = do
     exprType <- checkExpr expr
-    unless (compareTypes exprType argType) $
-        throwError $ "Argument error - expected type " ++ show argType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
+    catchWrongArgumentTypeError pos argType exprType
+    -- unless (compareTypes exprType argType) $
+    --     throwError $ "Argument error - expected type " ++ show argType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
     -- if compareTypes exprType argType then
     --     return ()
     -- else
@@ -264,11 +268,12 @@ checkArg (ValArgType pos argType) expr = do
 checkArg (RefArgType pos argType) expr = do
     outsideIdent <- case expr of
         EVar _ id -> return id
-        _ -> throwError $ "Reference error - argument is not a variable but regular expression in position (" ++ show pos ++ ")"
+        _ -> throwError $ referenceAssignedNonReferenceTypeError pos
     exprType <- checkExpr expr
-    unless (compareTypes exprType argType) $
-        throwError $ "Argument error - expected type " ++ show argType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
-    -- if compareTypes exprType argType then
+    catchWrongArgumentTypeError pos argType exprType
+    -- unless (compareTypes exprType argType) $
+    --     throwError $ "Argument error - expected type " ++ show argType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
+    -- -- if compareTypes exprType argType then
     --     return ()
     -- else
     --     throwError $ "Argument error - expected type " ++ show argType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
@@ -281,7 +286,7 @@ checkArgs pos (arg : args) (expr : exprs) = do
     checkArg arg expr
     checkArgs pos args exprs
 
-checkArgs pos _ _ = throwError $ "Application error - wrong number of arguments at " ++ showPosition pos
+checkArgs pos _ _ = throwError $ wrongNumberOfArgumentsInApplicationError pos
 
 -- ---------- PROGRAM ------------
 checkProgComps :: [ProgComp] -> TypeCheckerMonad TypeEnv
@@ -299,7 +304,8 @@ checkProgram (Program pos components) = do
     mainType <- local (const env') $ getVariableType pos (Ident "main")
     case mainType of
         (Fun _ _ (Int _)) -> return ()
-        _ -> throwError "Main function must return an integer value"
+        (Fun pos _ _) -> throwError $ mainFunctionTypeError pos mainType
+        _ -> throwError $ noMainFunctionFoundError
 
 checkProgComp :: ProgComp -> TypeCheckerMonad TypeEnv
 checkProgComp (FunDecl pos retType ident args block) = do
@@ -334,8 +340,7 @@ evalItem (Init pos ident expr) varType = do
         let newEnv = Data.Map.insert ident varType env
         return newEnv
     else
-        throwError $ "Initialization error - expected type " ++ show varType ++ " but got " ++ show exprType ++ " in position (" ++ show pos ++ ")"
-
+        throwError $ initializationTypesError pos varType exprType
 
 -- -- FUNCTION 
 
@@ -354,7 +359,7 @@ checkFunction pos args retType block = do
     else
         case retType of
             (Void _) -> return ()
-            _ -> throwError $ "No return value for function in position" ++ show pos ++ " but expected type " ++ show retType
+            _ -> throwError $ noReturnValueForNonVoidFunctionError pos retType
 
 addReturn :: Type -> TypeCheckerMonad TypeEnv
 addReturn retType = do
