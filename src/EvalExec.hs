@@ -7,7 +7,6 @@ import Control.Monad.Except
 import Control.Monad.State
 
 import Expr
-import Program
 import Types
 import Utils
 import Errors (divisionByZeroError)
