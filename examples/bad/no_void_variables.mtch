@@ -1,0 +1,13 @@
+int f(void b, string a) {
+    int x = 5;
+    int c = 9;
+
+    return b;
+}
+
+int main() {
+    void c;
+    print(f(4, "Ala"));
+
+    return 0;
+}

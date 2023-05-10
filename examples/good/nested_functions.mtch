@@ -1,0 +1,36 @@
+string string_fun() {
+
+    int increment(int x) {
+        x++;
+        return 1;
+    }
+
+    int increment_ref(int@ x) {
+        void add_five(int@ x) {
+            x = x + 5;
+        }
+        
+        x++;
+        add_five(x);
+        return x;
+    }
+
+    int x = 2;
+    int b = increment(x);
+
+    increment_ref(x);
+
+    print("Correct answer 8");
+    print(x);
+    print("Correct answer 1");
+    print(b); 
+
+    return "hello world";
+}
+
+int main() {
+    string s = string_fun();
+    print(s);
+
+    return 0;
+}

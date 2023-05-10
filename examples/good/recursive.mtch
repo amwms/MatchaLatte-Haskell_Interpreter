@@ -1,0 +1,45 @@
+int recursive(int x) {
+    if (x == 0) {
+        return x;
+    }
+    else {
+        print("In recursive before return");
+        print(x);
+        int y = recursive(x - 1);
+        print("In recursive after return");
+        print(x);
+        return y;
+    }
+}
+
+int recursive_ref(int @x) {
+    if (x == 0) {
+        return x;
+    }
+    else {
+        x = x - 1;
+        print("In recursive_ret before return");
+        print(x);
+        int y = recursive_ref(x);
+        print("In recursive_ret after return");
+        print(x);
+        return y;
+    }
+}
+
+int main() {
+    int b = 8;
+
+    print("Recursive");
+    int c = recursive(b);
+    print("Correct answer 0, 8");
+    print(c);
+    print(b);
+
+    print("Recursive_ret");
+    recursive_ref(b);
+    print("Correct answer 0");
+    print(b);
+
+    return 0;
+}

@@ -1,0 +1,44 @@
+int x = 5;
+
+string string_fun() {
+    int x = 7;
+    print("Correct answer 7 - in function");
+    print(x);
+
+    return "Hello world";
+}
+
+int increment(int x) {
+    x++;
+    return x;
+}
+
+int increment_ref(int@ x) {
+    x++;
+    return 1;
+}
+
+void printing() {
+    string x = "Hello world";
+    print("Print test for string x - in function");
+    print(x);
+}
+
+int main() {
+    print("Correct answer 5");
+    print(x);
+
+    string_fun();
+    printing();
+
+    int b = increment(5);
+    print("Correct answer 6");
+    print(b); 
+
+    int c = increment_ref(b);
+    print("Correct answer 1, 7");
+    print(c); 
+    print(b); 
+
+    return 0;
+}

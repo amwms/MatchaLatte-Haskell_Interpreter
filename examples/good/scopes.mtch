@@ -1,0 +1,35 @@
+int x = 5;
+
+string string_fun() {
+    int x = 7;
+    print("Correct answer 7 - in function");
+    print(x);
+
+    return "Hello world";
+}
+
+void printing() {
+    int test() {
+        bool x;
+        print("Correct answer false - in function");
+        print(x);
+
+        return 0;
+    }
+
+    test();
+
+    string x = "Hello world";
+    print("Print test for string x - in function");
+    print(x);
+}
+
+int main() {
+    print("Correct answer 5 - global");
+    print(x);
+
+    string_fun();
+    printing();
+
+    return 0;
+}

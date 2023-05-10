@@ -1,0 +1,5 @@
+int main() {
+    print(f(4, "Ala", 6));
+
+    return 0;
+}

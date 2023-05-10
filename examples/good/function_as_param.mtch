@@ -1,0 +1,42 @@
+int test_lambda(fun [(int, int) -> int] f) {
+    int x = f(5, 6);
+    return x;
+}
+
+int increment(int x) {
+    x++;
+    return x;
+}
+
+int example(int x) {
+    int add(int n) {
+        return x + n;
+    }
+
+    return add(3);
+}
+
+
+int main() {
+    fun [(int) -> int] f = increment;
+    fun [(int, int) -> int] g = \(int a, int b) -> int => {return a + b;};
+    fun [(int) -> int] add = example;
+
+    int a  = example(1); // 4
+    int b = example(5); // 8
+    int c = g(4, 7); // 11
+    int d = f(4); // 5
+
+    print("Correct answer 4");
+    print(a);
+    print("Correct answer 8");
+    print(b);
+    print("Correct answer 11");
+    print(c);
+    print("Correct answer 5");
+    print(d);
+    print("Correct answer 11");
+    print(test_lambda(g)); // 11
+
+    return 0;
+}

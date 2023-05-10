@@ -1,0 +1,9 @@
+int main() {
+    int a = 8;
+    int b = 0;
+    string s = "Test";
+
+    int c = a / b;
+
+    return 0;
+}

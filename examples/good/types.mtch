@@ -1,0 +1,35 @@
+int main() {
+    int example_var;
+    bool example_bool = true;
+    string example_string = "my string example";
+    fun [(int, int) -> int] g = \(int a, int b) -> int => {return a + b;};
+
+    example_var = (5 + 3) / 4;
+    g = \(int a, int b) -> int => {return a - b;};
+
+    print(example_bool);
+    print(example_string);
+    print(example_var);
+    print(g);
+
+    int a = 8;
+    int b = 4;
+    int c = a + b;
+    c = a - b;
+    b = c / a;
+    a = b * c;
+    a = b % c;
+    print(a);
+    print(b);
+    print(c);
+
+    bool check = true;
+    check = (a == b);
+    check = a != b;
+
+    string s = "Ala";
+    s = s + " ma";
+    print(s);
+
+    return 0;
+}
