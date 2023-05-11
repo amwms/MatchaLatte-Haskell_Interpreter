@@ -8,22 +8,22 @@ int increment(int x) {
     return x;
 }
 
-int example(int x) {
+fun [(int) -> int] example(int x) {
     int add(int n) {
         return x + n;
     }
 
-    return add(3);
+    return add;
 }
 
 
 int main() {
     fun [(int) -> int] f = increment;
     fun [(int, int) -> int] g = \(int a, int b) -> int => {return a + b;};
-    fun [(int) -> int] add = example;
+    fun [(int) -> int] add3 = example(3);
 
-    int a  = example(1); // 4
-    int b = example(5); // 8
+    int a  = add3(1); // 4
+    int b = add3(5); // 8
     int c = g(4, 7); // 11
     int d = f(4); // 5
 
