@@ -44,14 +44,24 @@ getArgTypes ((RefArg pos argType ident):args) = do
     return $ (RefArgType pos argType):argTypes
 
 compareTypes :: Type -> Type -> Bool
-compareTypes type1 type2 = do
-    case (type1, type2) of
-        (Int _, Int _) -> True
-        (Str _, Str _) -> True
-        (Bool _, Bool _) -> True
-        (Fun _ _ _, Fun _ _ _) -> True
-        (Void _, Void _) -> True
-        _ -> False
+compareTypes (Int _) (Int _) = True
+compareTypes (Str _) (Str _) = True
+compareTypes (Bool _) (Bool _) = True
+compareTypes (Fun _ argTypes1 retType1) (Fun _ argTypes2 retType2) = 
+    compareArgTypes argTypes1 argTypes2 && compareTypes retType1 retType2
+compareTypes (Void _) (Void _) = True
+compareTypes _ _ = False
+
+compareArgTypes :: [ArgType] -> [ArgType] -> Bool
+compareArgTypes [] [] = True
+compareArgTypes (argType1:argTypes1) (argType2:argTypes2) = 
+    compareArgTypes argTypes1 argTypes2 && compareArgType argType1 argType2
+compareArgTypes _ _ = False
+
+compareArgType :: ArgType -> ArgType -> Bool
+compareArgType (ValArgType _ type1) (ValArgType _ type2) = compareTypes type1 type2
+compareArgType (RefArgType _ type1) (RefArgType _ type2) = compareTypes type1 type2
+compareArgType _ _ = False
 
 showType :: Type -> String
 showType (Int _) = "int"
@@ -63,7 +73,7 @@ showType (Void _) = "void"
 showArgTypes :: [ArgType] -> String
 showArgTypes [] = ""
 showArgTypes ((ValArgType _ argType):argTypes) = showType argType ++ ", " ++ showArgTypes argTypes
-showArgTypes ((RefArgType _ argType):argTypes) = "@" ++ showType argType ++ ", " ++ showArgTypes argTypes
+showArgTypes ((RefArgType _ argType):argTypes) = showType argType ++ "@" ++ ", " ++ showArgTypes argTypes
 
 showPosition :: BNFC'Position -> String
 showPosition (Just (line, column)) = "line " ++ show line ++ ", column " ++ show column
