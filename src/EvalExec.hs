@@ -171,6 +171,7 @@ evalExpr (EMul pos expr1 mulOp expr2) = do
     val2 <- evalExpr expr2
     case (mulOp, val2) of
         (Div _, VInt 0) -> throwError $ divisionByZeroError pos
+        (Mod _, VInt 0) -> throwError $ divisionByZeroError pos
         _ -> case (val1, val2) of
                 (VInt i1, VInt i2) -> return $ VInt $ evalMulOp mulOp i1 i2
                 _ -> throwError $ "Multiplication error - not an integer value"
