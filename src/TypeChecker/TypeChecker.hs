@@ -10,5 +10,5 @@ import TypeChecker.CheckerTypes
 import TypeChecker.GrammarChecker ( checkProgram )
 
 typeCheckProgram p =
-    runExceptT (runReaderT (checkProgram p) empty) 
+    runExceptT (runReaderT (checkProgram p) (empty, 0)) 
 

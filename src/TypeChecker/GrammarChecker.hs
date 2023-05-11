@@ -25,21 +25,22 @@ checkStmts (stmt : stmts) = do
 
 checkBlock :: Block -> TypeCheckerMonad TypeEnv 
 checkBlock (Block pos stmts) = do
-    env <- ask
-    env' <- local (const env) $ checkStmts stmts
+    (env, scope) <- ask
+    env' <- local (const (env, scope)) $ checkStmts stmts
     if hasReturn env' then do
         valType <- local (const env') $ getVariableType pos (Ident "return")
-        let newEnv = Data.Map.insert (Ident "return") valType env
-        return newEnv
+        let newEnv = Data.Map.insert (Ident "return") (valType, scope) env
+        return (newEnv, scope)
     else
-        return env
+        return (env, scope)
 
 checkStmt :: Stmt -> TypeCheckerMonad TypeEnv
 checkStmt (Empty _) = do
     ask
 
 checkStmt (StmtBlock _ block) = do
-    checkBlock block
+    (env, scope) <- ask
+    local (const (env, scope + 1)) $ checkBlock block
 
 checkStmt (StmtComp _ component) = do
     checkProgComp component
@@ -73,32 +74,32 @@ checkStmt (StmtExp _ expr) = do
     ask
 
 checkStmt (Ret pos expr) = do
-    env <- ask
+    (env, scope) <- ask
     exprType <- checkExpr expr
     
     functionRetType <- case Data.Map.lookup (Ident "@return") env of
-        Just funRetType -> return funRetType
+        Just (funRetType, _) -> return funRetType
         Nothing -> throwError $ returnOutsideOfFunctionError pos
 
     catchWrongReturnTypeError pos functionRetType exprType
-    if not(hasReturn env) then do
-        let newEnv = Data.Map.insert (Ident "return") exprType env
-        return newEnv
+    if not(hasReturn (env, scope)) then do
+        let newEnv = Data.Map.insert (Ident "return") (exprType, scope) env
+        return (newEnv, scope)
     else
-        return env
+        return (env, scope)
 
 checkStmt (VRet pos) = do
-    env <- ask
+    (env, scope) <- ask
     functionRetType <- case Data.Map.lookup (Ident "@return") env of
-        Just funRetType -> return funRetType
+        Just (funRetType, _) -> return funRetType
         Nothing -> throwError $ returnOutsideOfFunctionError pos
 
     catchWrongReturnTypeError pos functionRetType (Void pos)
-    if not(hasReturn env) then do
-        let newEnv = Data.Map.insert (Ident "return") (Void pos) env
-        return newEnv
+    if not(hasReturn (env, scope)) then do
+        let newEnv = Data.Map.insert (Ident "return") ((Void pos), scope) env
+        return (newEnv, scope)
     else   
-        return env
+        return (env, scope)
 
 checkStmt (If pos expr block) = do
     valType <- checkExpr expr
@@ -252,9 +253,9 @@ checkProgComps (comp : comps) = do
 
 checkProgComp :: ProgComp -> TypeCheckerMonad TypeEnv
 checkProgComp (FunDecl pos retType ident args block) = do
-    env <- ask
+    (env, scope) <- ask
     argTypes <- getArgTypes args
-    let newEnv = Data.Map.insert ident (Fun pos argTypes retType) env
+    let newEnv = (Data.Map.insert ident ((Fun pos argTypes retType), scope) env, scope + 1)
     
     local (const newEnv) $ checkFunction pos args retType block
 
@@ -273,16 +274,18 @@ evalItems (item : items) varType = do
     local (const env') $ evalItems items varType
 
 evalItem :: Item -> Type -> TypeCheckerMonad TypeEnv
-evalItem (NoInit _ ident) varType = do
-    env <- ask
-    let newEnv = Data.Map.insert ident varType env
+evalItem (NoInit pos ident) varType = do
+    catchIsVariableAlreadyInScope pos ident
+    (env, scope) <- ask
+    let newEnv = (Data.Map.insert ident (varType, scope) env, scope)
     return newEnv
 
 evalItem (Init pos ident expr) varType = do
+    catchIsVariableAlreadyInScope pos ident
     exprType <- checkExpr expr
     if compareTypes exprType varType then do
-        env <- ask
-        let newEnv = Data.Map.insert ident varType env
+        (env, scope) <- ask
+        let newEnv = (Data.Map.insert ident (varType, scope) env, scope)
         return newEnv
     else
         throwError $ initializationTypesError pos varType exprType
@@ -291,7 +294,8 @@ evalItem (Init pos ident expr) varType = do
 
 checkFunction :: BNFC'Position -> [Arg] -> Type -> Block -> TypeCheckerMonad ()
 checkFunction pos args retType block = do
-    env' <- evalArgs args
+    (env, scope) <- ask
+    env' <- local (const (env, scope + 1)) $ evalArgs args
     envWithReturn <- local (const env') $ addReturn retType
     env'' <- local (const envWithReturn) $ checkBlock block
     if hasReturn env'' then do
@@ -303,21 +307,23 @@ checkFunction pos args retType block = do
 
 addReturn :: Type -> TypeCheckerMonad TypeEnv
 addReturn retType = do
-    env <- ask
-    let newEnv = Data.Map.insert (Ident "@return") retType env
+    (env, scope) <- ask
+    let newEnv = (Data.Map.insert (Ident "@return") (retType, scope) env, scope)
     return newEnv
 
 evalArg :: Arg -> TypeCheckerMonad TypeEnv
 evalArg (ValArg pos argType ident) = do
+    catchIsVariableAlreadyInScope pos ident
     catchVoidVariable pos argType
-    env <- ask
-    let newEnv = Data.Map.insert ident argType env
+    (env, scope) <- ask
+    let newEnv = (Data.Map.insert ident (argType, scope) env, scope)
     return newEnv
 
 evalArg (RefArg pos argType ident) = do
+    catchIsVariableAlreadyInScope pos ident
     catchVoidVariable pos argType
-    env <- ask
-    let newEnv = Data.Map.insert ident argType env
+    (env, scope) <- ask
+    let newEnv = (Data.Map.insert ident (argType, scope) env, scope)
     return newEnv
 
 evalArgs :: [Arg] -> TypeCheckerMonad TypeEnv
