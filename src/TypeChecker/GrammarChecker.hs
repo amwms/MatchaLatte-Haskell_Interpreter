@@ -53,7 +53,7 @@ checkStmt (Assign pos ident expr) = do
     if compareTypes varType exprType then
         return env
     else
-        throwError $ genericVariableTypeInPositionError pos "Assign" ident varType exprType
+        throwError $ assignWrongTypesError pos ident varType exprType
 
 -- checkStmt (Incr pos ident) = do
 --     env <- ask
@@ -165,7 +165,7 @@ checkExpr (ENot pos expr) = do
     valType <- checkExpr expr
     case (valType) of
         (Bool _) -> return $ Bool pos
-        _ -> throwError $ genericExpressionTypeInPositionError pos "Not" "integer" valType
+        _ -> throwError $ genericExpressionTypeInPositionError pos "Not" "boolean" valType
 
 checkExpr (ENeg pos expr) = do
     valType <- checkExpr expr
@@ -194,7 +194,9 @@ checkExpr (ERel pos expr1 relOp expr2) = do
     case (valType1, valType2, relOp) of
         (Int _, Int _, _) -> return $ Bool pos
         (Bool _, Bool _, EQU _) -> return $ Bool pos
+        (Bool _, Bool _, NEQ _) -> return $ Bool pos
         (Str _, Str _, _) -> return $ Bool pos
+        (Bool _, Bool _, _) -> throwError $ boolComparisonTypeError pos relOp
         _ -> throwError $ comparisonTypesError pos valType1 valType2
 
 checkExpr (EAnd pos expr1 expr2) = do

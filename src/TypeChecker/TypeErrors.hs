@@ -1,5 +1,5 @@
 module TypeChecker.TypeErrors where
-import Grammar.Abs (BNFC'Position, Type, Ident(..))
+import Grammar.Abs
 import TypeChecker.CheckerUtils
 import TypeChecker.CheckerTypes
 import Control.Monad.Except
@@ -61,6 +61,19 @@ comparisonTypesError pos valType1 valType2 =
     ") - error comparing different types " ++ 
     showType valType1 ++ " and " ++ showType valType2
 
+boolComparisonTypeError :: BNFC'Position -> RelOp -> String
+boolComparisonTypeError pos relOp = 
+    let showRelOp = case relOp of
+            Less _ -> "<"
+            LEQ _ -> "<="
+            Greater _ -> ">"
+            GEQ _ -> ">="
+            EQU _ -> "=="
+            NEQ _ -> "!="
+    in
+    "Comparison error in position (" ++ showPosition pos ++ 
+    ") - error comparing boolean values with \"" ++ showRelOp ++ "\""
+
 mathOperationTypeError :: BNFC'Position -> String -> Type -> Type -> String
 mathOperationTypeError pos operationName valType1 valType2 =
     "Math operation error - cannot " ++ 
@@ -81,3 +94,10 @@ genericVariableTypeInPositionError pos functionName (Ident ident) valType expect
    "\" is of type " ++ showType valType ++
    " in position (" ++ showPosition pos ++ ")" ++
    " but expected type was " ++ showType expectedType
+
+assignWrongTypesError :: BNFC'Position -> Ident -> Type -> Type -> String
+assignWrongTypesError pos (Ident ident) valType expectedType =
+   "Assign error  - variable \"" ++ ident ++ 
+   "\" is of type " ++ showType valType ++
+   " in position (" ++ showPosition pos ++ ")" ++
+   " but tried assigning expression of type " ++ showType expectedType
