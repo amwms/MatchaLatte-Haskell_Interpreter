@@ -46,8 +46,6 @@ data Stmt' a
     | StmtBlock a (Block' a)
     | StmtComp a (ProgComp' a)
     | Assign a Ident (Expr' a)
-    | Incr a Ident
-    | Decr a Ident
     | StmtExp a (Expr' a)
     | Print a (Expr' a)
     | Ret a (Expr' a)
@@ -74,6 +72,8 @@ data Expr' a
     | EFalse a
     | EString a String
     | ELambda a [Arg' a] (Type' a) (Block' a)
+    | Incr a Ident
+    | Decr a Ident
     | EApplic a Ident [Expr' a]
     | ENeg a (Expr' a)
     | ENot a (Expr' a)
@@ -143,8 +143,6 @@ instance HasPosition Stmt where
     StmtBlock p _ -> p
     StmtComp p _ -> p
     Assign p _ _ -> p
-    Incr p _ -> p
-    Decr p _ -> p
     StmtExp p _ -> p
     Print p _ -> p
     Ret p _ -> p
@@ -174,6 +172,8 @@ instance HasPosition Expr where
     EFalse p -> p
     EString p _ -> p
     ELambda p _ _ _ -> p
+    Incr p _ -> p
+    Decr p _ -> p
     EApplic p _ _ -> p
     ENeg p _ -> p
     ENot p _ -> p

@@ -55,19 +55,19 @@ checkStmt (Assign pos ident expr) = do
     else
         throwError $ genericVariableTypeInPositionError pos "Assign" ident varType exprType
 
-checkStmt (Incr pos ident) = do
-    env <- ask
-    valType <- getVariableType pos ident
-    case valType of
-        Int _ -> return env
-        _ -> throwError $ genericVariableTypeInPositionError pos "Increment" ident valType (Int Nothing)
+-- checkStmt (Incr pos ident) = do
+--     env <- ask
+--     valType <- getVariableType pos ident
+--     case valType of
+--         Int _ -> return env
+--         _ -> throwError $ genericVariableTypeInPositionError pos "Increment" ident valType (Int Nothing)
 
-checkStmt (Decr pos ident) = do
-    env <- ask
-    valType <- getVariableType pos ident
-    case valType of
-        Int _ -> return env
-        _ -> throwError $ genericVariableTypeInPositionError pos "Decrement" ident valType (Int Nothing)
+-- checkStmt (Decr pos ident) = do
+--     env <- ask
+--     valType <- getVariableType pos ident
+--     case valType of
+--         Int _ -> return env
+--         _ -> throwError $ genericVariableTypeInPositionError pos "Decrement" ident valType (Int Nothing)
 
 checkStmt (StmtExp _ expr) = do
     checkExpr expr
@@ -146,6 +146,20 @@ checkExpr (ELambda pos args retType block) = do
     checkFunction pos args retType block 
     argTypes <- getArgTypes args
     return $ Fun pos argTypes retType
+
+checkExpr (Incr pos ident) = do
+    env <- ask
+    valType <- getVariableType pos ident
+    case valType of
+        Int pos -> return $ Int pos
+        _ -> throwError $ genericVariableTypeInPositionError pos "Increment" ident valType (Int Nothing)
+
+checkExpr (Decr pos ident) = do
+    env <- ask
+    valType <- getVariableType pos ident
+    case valType of
+        Int _ -> return $ Int pos
+        _ -> throwError $ genericVariableTypeInPositionError pos "Decrement" ident valType (Int Nothing)
 
 checkExpr (ENot pos expr) = do
     valType <- checkExpr expr
