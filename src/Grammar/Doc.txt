@@ -38,8 +38,8 @@ The reserved words used in Grammar are the following:
 The symbols used in Grammar are the following:
   | ( | ) | @ | ,
   | ; | = | { | }
-  | ++ | -- | [ | ->
-  | ] | \ | => | -
+  | [ | -> | ] | \
+  | => | ++ | -- | -
   | ! | && | || | +
   | * | / | % | <
   | <= | > | >= | ==
@@ -75,8 +75,6 @@ All other symbols are terminals.
   |  |  **|**  | //Block//
   |  |  **|**  | //ProgComp//
   |  |  **|**  | //Ident// ``=`` //Expr// ``;``
-  |  |  **|**  | //Ident// ``++`` ``;``
-  |  |  **|**  | //Ident// ``--`` ``;``
   |  |  **|**  | //Expr// ``;``
   |  |  **|**  | ``print`` ``(`` //Expr// ``)`` ``;``
   |  |  **|**  | ``return`` //Expr// ``;``
@@ -99,6 +97,8 @@ All other symbols are terminals.
   |  |  **|**  | ``true``
   |  |  **|**  | ``false``
   |  |  **|**  | //String//
+  |  |  **|**  | //Ident// ``++``
+  |  |  **|**  | //Ident// ``--``
   |  |  **|**  | //Ident// ``(`` //[Expr]// ``)``
   |  |  **|**  | ``(`` //Expr// ``)``
   | //Expr// | -> | ``\`` ``(`` //[Arg]// ``)`` ``->`` //Type// ``=>`` //Block//

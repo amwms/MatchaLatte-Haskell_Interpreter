@@ -62,20 +62,20 @@ execStmt (Assign _ ident expr) = do
     put (newStore, last)
     return env
 
-execStmt (Incr pos ident) = do
-    env <- ask
-    (store, last) <- get
-    val <- getValueFromMemory ident
-    case val of
-        VInt intVal -> execStmt (Assign pos ident (EInt pos (intVal + 1)))
-        _ -> throwError "Incr error - value is not an integer"
+-- execStmt (Incr pos ident) = do
+--     env <- ask
+--     (store, last) <- get
+--     val <- getValueFromMemory ident
+--     case val of
+--         VInt intVal -> execStmt (Assign pos ident (EInt pos (intVal + 1)))
+--         _ -> throwError "Incr error - value is not an integer"
 
-execStmt (Decr pos ident) = do
-    env <- ask
-    val <- getValueFromMemory ident
-    case val of
-        VInt intVal -> execStmt (Assign pos ident (EInt pos (intVal - 1)))
-        _ -> throwError "Decr error - value is not an integer"
+-- execStmt (Decr pos ident) = do
+--     env <- ask
+--     val <- getValueFromMemory ident
+--     case val of
+--         VInt intVal -> execStmt (Assign pos ident (EInt pos (intVal - 1)))
+--         _ -> throwError "Decr error - value is not an integer"
 
 execStmt (StmtExp _ expr) = do
     evalExpr expr
@@ -153,6 +153,25 @@ evalExpr (EString _ str) = return $ VString str
 evalExpr (ELambda _ args retType block) = do
     env <- ask
     return $ VFun args retType block env
+
+evalExpr (Incr pos ident) = do
+    env <- ask
+    (store, last) <- get
+    val <- getValueFromMemory ident
+    case val of
+        VInt intVal -> do 
+            execStmt (Assign pos ident (EInt pos (intVal + 1)))
+            return $ VInt intVal
+        _ -> throwError "Incr error - value is not an integer"
+
+evalExpr (Decr pos ident) = do
+    env <- ask
+    val <- getValueFromMemory ident
+    case val of
+        VInt intVal -> do 
+            execStmt (Assign pos ident (EInt pos (intVal - 1)))
+            return $ VInt intVal
+        _ -> throwError "Decr error - value is not an integer"
 
 evalExpr (ENot _ expr) = do
     val <- evalExpr expr

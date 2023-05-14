@@ -41,10 +41,6 @@ StmtComp.  Stmt ::= ProgComp ;
 
 Assign.    Stmt ::= Ident "=" Expr  ";" ;
 
-Incr.      Stmt ::= Ident "++"  ";" ;
-
-Decr.      Stmt ::= Ident "--"  ";" ;
-
 StmtExp.   Stmt ::= Expr  ";" ;
 
 Print.     Stmt ::= "print" "(" Expr ")" ";" ;
@@ -93,6 +89,10 @@ EString.   Expr6 ::= String ;
 
 ELambda.   Expr ::= "\\" "(" [Arg] ")" "->" Type "=>" Block ;
 
+
+Incr.      Expr6 ::= Ident "++" ;
+
+Decr.      Expr6 ::= Ident "--" ;
 
 EApplic.   Expr6 ::= Ident "(" [Expr] ")" ;
 
